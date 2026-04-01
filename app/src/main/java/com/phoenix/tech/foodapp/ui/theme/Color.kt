@@ -1,0 +1,59 @@
+package com.phoenix.tech.foodapp.ui.theme
+
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.ui.graphics.Color
+
+val lightScheme = lightColorScheme(
+    primary = Color(0xFFFF5200),          // Vibrant Food Orange
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFFFDBD1),
+    onPrimaryContainer = Color(0xFF9F2700),
+    secondary = Color(0xFF2D3333),        // Dark Charcoal for accents
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFE0E3E3),
+    onSecondaryContainer = Color(0xFF191C1C),
+    tertiary = Color(0xFF2E7D32),         // Healthy Green
+    onTertiary = Color(0xFFFFFFFF),
+    background = Color(0xFFF8F8F8),       // Very light grey background
+    surface = Color(0xFFFFFFFF),          // Pure white cards
+    onSurface = Color(0xFF191C1C),
+    surfaceVariant = Color(0xFFF0F0F0),   // Search bars/input fields
+    onSurfaceVariant = Color(0xFF444748),
+    outline = Color(0xFF747878)
+)
+
+object AppTextFieldColors {
+    val Success = Color(0xFF329836)
+    val Error = Color(0xFFFF1818)
+    val Default = Color(0xFF8F8E8E)
+    val Focused = Color(0xFF286DD5)
+}
+
+fun getRatingColor(rating: Double): Color {
+    return when (rating) {
+        in 3.5..5.0 -> Color(0xFF15A91C)
+        in 2.5..3.5 -> Color(0xFFFF9800)
+        else -> Color(0xFFFA3232)
+    }
+}
+
+
+val darkScheme = darkColorScheme(
+    primary = Color(0xFFFFB187),          // Softer orange for dark mode
+    onPrimary = Color(0xFF5E1700),
+    primaryContainer = Color(0xFF8D2C0D),
+    onPrimaryContainer = Color(0xFFFFDBD1),
+    secondary = Color(0xFFBFC8C8),
+    onSecondary = Color(0xFF293232),
+    secondaryContainer = Color(0xFF3F4849),
+    onSecondaryContainer = Color(0xFFDDE4E4),
+    tertiary = Color(0xFF81C784),         // Muted Green
+    onTertiary = Color(0xFF00390A),
+    background = Color(0xFF121212),       // Deep OLED Black
+    surface = Color(0xFF1E1E1E),          // Dark grey cards
+    onSurface = Color(0xFFE1E2E3),
+    surfaceVariant = Color(0xFF444748),
+    onSurfaceVariant = Color(0xFFC4C7C8),
+    outline = Color(0xFF8E9192),
+)
