@@ -9,6 +9,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.phoenix.tech.foodapp.data.model.UserLocation
 import com.phoenix.tech.foodapp.utils.AppConstants
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 
@@ -17,16 +18,6 @@ private val Context.dataStore by preferencesDataStore(AppConstants.PREFS_STORE)
 
 class SessionManager(context: Context) {
     private val _dataStore = context.dataStore
-
-    // Auth Prefs keys
-//    private val _authTokenKey = stringPreferencesKey(AppConstants.AUTH_TOKEN)
-
-    // Location Prefs keys
-//    private val _locationNameKey = stringPreferencesKey(AppConstants.LOC_NAME)
-//    private val _locationLatitudeKey = doublePreferencesKey(AppConstants.LOC_LAT)
-//    private val _locationLongitudeKey = doublePreferencesKey(AppConstants.LOC_LONG)
-//    private val _locationIsAutoKey = booleanPreferencesKey(AppConstants.LOC_IS_AUTO)
-
 
     private val _keys = object {
         // Auth Prefs keys
@@ -39,10 +30,8 @@ class SessionManager(context: Context) {
         val locIsAuto = booleanPreferencesKey(AppConstants.LOC_IS_AUTO)
     }
 
-
 //    private val _csrfTokenKey = stringPreferencesKey(AppConstants.CSRF_TOKEN)
 //    val csrfToken: Flow<String?> = _dataStore.data.map { it[_csrfTokenKey] }
-
 
     suspend fun setAuthToken(token: String) {
         // Save token to disk
@@ -60,21 +49,34 @@ class SessionManager(context: Context) {
         _dataStore.edit { it.clear() }
     }
 
-    val userLocation: Flow<UserLocation?> = _dataStore.data.map { prefs ->
-        val locName = prefs[_keys.locName]
-        // Read saved location name. If exists, return that else return null
-        if (locName.isNullOrEmpty()) {
-            null
-        } else {
-            UserLocation(
-                name = locName,
-                latitude = prefs[_keys.locLat] ?: 0.0,
-                longitude = prefs[_keys.locLong] ?: 0.0,
-                isAutoDetected = prefs[_keys.locIsAuto] ?: false
-            )
+    //    val userLocation: Flow<UserLocation?> = _dataStore.data.map { prefs ->
+//        val locName = prefs[_keys.locName]
+//        // Read saved location name. If exists, return that else return null
+//        if (locName.isNullOrEmpty()) {
+//            null
+//        } else {
+//            UserLocation(
+//                name = locName,
+//                latitude = prefs[_keys.locLat] ?: 0.0,
+//                longitude = prefs[_keys.locLong] ?: 0.0,
+//                isAutoDetected = prefs[_keys.locIsAuto] ?: false
+//            )
+//        }
+//    }
+    val userLocation: Flow<UserLocation?> = _dataStore.data
+        .map { prefs ->
+            val locName = prefs[_keys.locName]
+            if (locName.isNullOrEmpty()) null
+            else {
+                UserLocation(
+                    name = locName,
+                    latitude = prefs[_keys.locLat] ?: 0.0,
+                    longitude = prefs[_keys.locLong] ?: 0.0,
+                    isAutoDetected = prefs[_keys.locIsAuto] ?: false
+                )
+            }
         }
-    }
-
+        .distinctUntilChanged() // Prevents identical emissions from triggering downstream logic (effects)
 
     suspend fun setLocationDetails(loc: UserLocation) {
         _dataStore.edit { prefs ->
@@ -84,6 +86,7 @@ class SessionManager(context: Context) {
             prefs[_keys.locIsAuto] = loc.isAutoDetected
         }
     }
+
 
     suspend fun clearLocation() {
         _dataStore.edit { it.remove(_keys.locName) }

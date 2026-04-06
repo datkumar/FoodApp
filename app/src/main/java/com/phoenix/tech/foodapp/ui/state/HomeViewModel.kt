@@ -1,15 +1,19 @@
 package com.phoenix.tech.foodapp.ui.state
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.phoenix.tech.foodapp.data.model.UserLocation
 import com.phoenix.tech.foodapp.data.repository.RestoListRepository
 import com.phoenix.tech.foodapp.data.repository.SessionManager
+import com.phoenix.tech.foodapp.navigation.MainLayoutPermsTag
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -28,72 +32,67 @@ class HomeViewModelFactory(
 }
 
 
-//class HomeViewModel(
-//    private val sessionManager: SessionManager,
-//    private val repository: RestoListRepository = RestoListRepository()
-//) : ViewModel() {
-//
-//    // 1. Observe Location from SessionManager
-//    val userLocation = sessionManager.userLocation.stateIn(
-//        scope = viewModelScope,
-//        started = SharingStarted.WhileSubscribed(5000),
-//        initialValue = null
-//    )
-//
-//    // 2. Transform Location into PagingData
-//    // flatMapLatest ensures that if location changes, the old pager is cancelled
-//    @OptIn(ExperimentalCoroutinesApi::class)
-//    val restoPagingFlow = userLocation.flatMapLatest { loc ->
-//        if (loc == null) {
-//            flowOf(PagingData.empty())
-//        } else {
-//            repository.getRestoPagingFlow(
-//                loc.latitude, loc.longitude
-//            )
-//        }
-//    }.cachedIn(viewModelScope) // Crucial: survives config changes
-//
-//    init {
-//        checkInitialLocation()
-//    }
-//
-//    private fun checkInitialLocation() {
-//        viewModelScope.launch {
-//            if (sessionManager.userLocation.firstOrNull() == null) {
-//                setDefaultLocation()
-//            }
-//        }
-//    }
-//
-//    private suspend fun setDefaultLocation() {
-//        val defaultLoc = UserLocation(
-//            name = "Pune, Maharashtra",
-//            latitude = 18.5204,
-//            longitude = 73.8567,
-//            isAutoDetected = false
-//        )
-//        sessionManager.setLocationDetails(defaultLoc)
-//    }
-//}
-
 class HomeViewModel(
     private val sessionManager: SessionManager,
     private val repository: RestoListRepository = RestoListRepository()
 ) : ViewModel() {
+    // Unique timestamp to force a refresh
+    private val refreshTrigger = MutableStateFlow(System.currentTimeMillis())
 
-    private val refreshTrigger = MutableSharedFlow<Unit>(replay = 1)
-        .apply { tryEmit(Unit) }
+    // Track the last location we successfully fetched for to prevent duplicates
+    private var lastFetchedLocation: UserLocation? = null
 
-    @OptIn(ExperimentalCoroutinesApi::class)
+    // Initialize with the current time so the FIRST load
+    // doesn't "force" unless the repository says it's a new location.
+    private var lastHandledRefresh = refreshTrigger.value
+
+    @OptIn(ExperimentalCoroutinesApi::class, ExperimentalStdlibApi::class)
     val uiState: StateFlow<HomeUiState> = combine(
-        sessionManager.userLocation,
+        sessionManager.userLocation.distinctUntilChanged { old, new ->
+            // Ignore metadata changes. Only react to actual coordinate shifts.
+            old?.latitude == new?.latitude && old?.longitude == new?.longitude
+        },
         refreshTrigger
-    ) { location, _ -> location }
-        .flatMapLatest { location ->
+    ) { location, timestamp ->
+        location to timestamp
+    }
+        .flatMapLatest { (location, timestamp) ->
             if (location == null) {
-                flowOf(HomeUiState.Error("No location selected"))
+                // Stay in Loading state while waiting for permission/detection
+                // we have Pune fallback if location is null
+                flowOf(HomeUiState.Loading)
             } else {
-                fetchRestaurantsFlow(location.latitude, location.longitude)
+                val isManualRefresh = timestamp > lastHandledRefresh
+                // Check if we actually need a network call
+                val isNewLocation = location.latitude != lastFetchedLocation?.latitude ||
+                        location.longitude != lastFetchedLocation?.longitude
+
+                lastHandledRefresh = timestamp
+                Log.d(
+                    MainLayoutPermsTag,
+                    "#### isNewLocation" + isNewLocation + "isManualRefresh" + isManualRefresh
+                )
+                // FIX: Only fetch if it's a brand new location OR a manual pull-to-refresh
+                if (isNewLocation || isManualRefresh) {
+                    fetchRestaurantsFlow(location)
+                } else {
+                    // Keep the current success state if location hasn't actually changed
+                    // This prevents the "Pune -> Real Location" double-flash
+                    flowOf(uiState.value)
+                }
+
+
+//                // Check if this specific emission was caused by a call to refreshRestaurants()
+//                val isManualRefresh = timestamp > lastHandledRefresh
+//
+//                // Update the tracker for the next emission
+//                lastHandledRefresh = timestamp
+//
+//                fetchRestaurantsFlow(
+//                    lat = location.latitude,
+//                    lng = location.longitude,
+//                    forceRefresh = isManualRefresh
+//                )
             }
         }
         .stateIn(
@@ -102,106 +101,35 @@ class HomeViewModel(
             initialValue = HomeUiState.Loading
         )
 
+    fun refreshRestaurants() {
+        refreshTrigger.value = System.currentTimeMillis()
+    }
 
-    private fun fetchRestaurantsFlow(lat: Double, lng: Double) = flow {
+    private fun fetchRestaurantsFlow(location: UserLocation) = flow {
         emit(HomeUiState.Loading)
         try {
-            val data = repository.getHomeRestaurants(lat, lng)
+            val data = repository.getHomeRestaurants(
+                location.latitude,
+                location.longitude,
+                forceRefresh = true // Usually true if we reached this point
+            )
+            lastFetchedLocation = location
             emit(HomeUiState.Success(data))
         } catch (e: Exception) {
             emit(HomeUiState.Error(e.message ?: "Failed to load restaurants"))
         }
     }
 
-    fun refreshRestaurants() {
-        refreshTrigger.tryEmit(Unit)
-    }
-
-
-//    // 1. Transform the DataStore Flow into a StateFlow
-//    // This solves the ".value" error and gives the VM a constant "peek" at the location
-//    val userLocation = sessionManager.userLocation.stateIn(
-//        scope = viewModelScope,
-//        started = SharingStarted.WhileSubscribed(5000),
-//        initialValue = null
-//    )
-
-//    private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
-//    val uiState = _uiState.asStateFlow()
-
-//    init {
-//        // Start the observer immediately
-//        observeLocationUpdates()
-//        checkInitialLocation()
-//    }
-
-//    private fun checkInitialLocation() {
-//        viewModelScope.launch {
-//            // Wait a moment for DataStore to emit the first value
-//            val current = sessionManager.userLocation.firstOrNull()
-//
-//            if (current == null) {
-//                // Option A: Trigger Auto-Detect (Requires Context/Permission check)
-//                // Option B: Set a Default Fallback (Recommended for first-run UX)
-//                setDefaultLocation()
-//            }
-//        }
-//    }
-//
-//    private suspend fun setDefaultLocation() {
-//        // Set a popular default (e.g., your Pune coordinates)
-//        // so the user sees food immediately instead of an empty screen
-//        val defaultLoc = UserLocation(
-//            name = "Pune, Maharashtra",
-//            latitude = 18.5204,
-//            longitude = 73.8567,
-//            isAutoDetected = false
-//        )
-//        sessionManager.setLocationDetails(defaultLoc)
-//    }
-//
-//    private fun observeLocationUpdates() {
-//        viewModelScope.launch {
-//            userLocation.collect { loc ->
-//                if (loc != null) {
-//                    // Automatically fetch whenever location changes
-//                    fetchRestaurants(loc.latitude, loc.longitude)
-//                } else {
-//                    // Show a specific state if no location is set yet
-//                    _uiState.value =
-//                        HomeUiState.Error("Please select a location to see restaurants")
-//                }
-//            }
-//        }
-//    }
-//
-//    private suspend fun fetchRestaurants(
-//        lat: Double, lng: Double, forceRefresh: Boolean = false
-//    ) {
-//        _uiState.value = HomeUiState.Loading
+//    private fun fetchRestaurantsFlow(
+//        lat: Double, lng: Double,
+//        forceRefresh: Boolean
+//    ) = flow {
+//        emit(HomeUiState.Loading)
 //        try {
-//            val restaurants = repository.getHomeRestaurants(
-//                lat = lat,
-//                lng = lng,
-//                forceRefresh = forceRefresh
-//            )
-//            _uiState.value = HomeUiState.Success(restaurants)
+//            val data = repository.getHomeRestaurants(lat, lng, forceRefresh)
+//            emit(HomeUiState.Success(data))
 //        } catch (e: Exception) {
-//            _uiState.value = HomeUiState.Error(e.message ?: "Failed to load restaurants")
-//        }
-//    }
-//
-//    fun refreshRestaurants() {
-//        // 3. Use the .value we gained from stateIn
-//        val currentLoc = userLocation.value
-//        if (currentLoc != null) {
-//            viewModelScope.launch {
-//                fetchRestaurants(
-//                    lat = currentLoc.latitude,
-//                    lng = currentLoc.longitude,
-//                    forceRefresh = true
-//                )
-//            }
+//            emit(HomeUiState.Error(e.message ?: "Failed to load restaurants"))
 //        }
 //    }
 }

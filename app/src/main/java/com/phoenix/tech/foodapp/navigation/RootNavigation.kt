@@ -1,5 +1,7 @@
 package com.phoenix.tech.foodapp.navigation
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -11,6 +13,7 @@ import com.phoenix.tech.foodapp.data.repository.SessionManager
 import com.phoenix.tech.foodapp.ui.screens.LoginScreen
 import com.phoenix.tech.foodapp.ui.state.LoginViewModel
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun RootNavigation(
     startDestination: Any, // ensure only MainAppGraph | AuthGraph
