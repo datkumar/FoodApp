@@ -15,6 +15,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.phoenix.tech.foodapp.data.model.GeocodingEntry
+import com.phoenix.tech.foodapp.data.model.RestoListingItem
 import com.phoenix.tech.foodapp.data.model.UserLocation
 import com.phoenix.tech.foodapp.data.network.HttpClient.geoApi
 import com.phoenix.tech.foodapp.data.repository.SessionManager
@@ -68,17 +69,17 @@ class LocationViewModel(
     private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(application)
 
     // Expose the saved location from DataStore to the UI
-    val savedLocation = sessionManager.userLocation.stateIn(
+    val savedLocation: StateFlow<UserLocation?> = sessionManager.userLocation.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),
         null
     )
 
-    // Location detection loading state
+    // Location detection ongoing state
     private val _isDetecting = MutableStateFlow(false)
     val isDetecting = _isDetecting.asStateFlow()
 
-    // GeoApi location fetch loading state
+    // GeoApi location details fetching state
     private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
 
@@ -97,11 +98,11 @@ class LocationViewModel(
                     emit(emptyList())
                     return@flow
                 }
-
                 _isLoading.value = true
                 val results = try {
                     geoApi.searchLocation(searchTerm).results
                 } catch (e: Exception) {
+                    Log.e(LocationVMTag, "Geocoding search failed for '$searchTerm'", e)
                     emptyList()
                 }
                 _isLoading.value = false
@@ -125,7 +126,7 @@ class LocationViewModel(
                     name = result.formattedName,
                     latitude = result.lat,
                     longitude = result.lon,
-                    isAutoDetected = false
+                    isAutoDetected = false // User-selected NOT Detected
                 )
             )
             // Clear search state after selection
@@ -133,15 +134,173 @@ class LocationViewModel(
         }
     }
 
+    fun getPuneFallback() = UserLocation(
+        name = "Pune, Maharashtra",
+        latitude = 18.5204,
+        longitude = 73.8567,
+        isAutoDetected = false
+    )
 
-    /** * Checks if the current saved location is the "Pune Fallback".
+
+    // Updates the location name in DataStore after HomeViewModel fetches Swiggy restaurants.
+    // Swiggy returns locality/areaName/city in each restaurant item — we use the first
+    // non-empty value so we never need a reverse-geocoding call for auto-detected locations.
+    suspend fun updateLocationNameFromSwiggy(restaurants: List<RestoListingItem>) {
+        // Walk the first few items to find a non-blank locality or areaName
+        val nameFromSwiggy = restaurants
+            .take(5)
+            .firstNotNullOfOrNull { item ->
+                listOf(
+                    item.info.locality, item.info.areaName,
+                ).firstOrNull {
+                    it.isNotBlank()
+                }
+            }
+
+        if (nameFromSwiggy != null) {
+            Log.d(LocationVMTag, "Updating location name from Swiggy: $nameFromSwiggy")
+            // Preserve coords and isAutoDetected — only patch the display name
+            val userLoc = sessionManager.userLocation.first()
+            if (userLoc != null) {
+                // Coordinates already present, just update name
+                sessionManager.setLocationDetails(
+                    userLoc.copy(name = nameFromSwiggy)
+                )
+            } else {
+                Log.w(
+                    LocationVMTag,
+                    "updateLocationNameFromSwiggy: no saved location to patch name onto"
+                )
+            }
+        } else {
+            // Swiggy returned no usable locality strings — keep whatever name is already stored
+            Log.w(
+                LocationVMTag,
+                "updateLocationNameFromSwiggy: no locality/areaName found in first 5 items"
+            )
+        }
+    }
+
+
+    // Returns (latitude, longitude) or null if we couldn't get a fix in time.
+    // Tries a fresh high-accuracy fix first (5 s timeout), then falls back to
+    // the last cached location. Returns null only if both are unavailable.
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    @SuppressLint("MissingPermission")
+    private suspend fun detectLocCoordinates(): Pair<Double, Double>? {
+        return try {
+            val cts = CancellationTokenSource()
+            // Fresh location — can be null if the device hasn't got a satellite lock yet
+            val freshLoc = withTimeoutOrNull(5_000) {
+                fusedLocationClient
+                    .getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cts.token)
+                    .await()
+            }
+            // Cached last-known position as a fallback
+            val cachedLoc = fusedLocationClient.lastLocation.await()
+            // Resolved final location result
+            val finalLoc = freshLoc ?: cachedLoc
+            if (finalLoc != null) {
+                val ageSeconds = (finalLoc.elapsedRealtimeAgeMillis / 1000.0).roundToInt()
+                Log.d(
+                    LocationVMTag,
+                    "detectCoordinates: fresh=${freshLoc != null}, " +
+                            "cacheAge=${ageSeconds}s — using (${finalLoc.latitude}, ${finalLoc.longitude})"
+                )
+                finalLoc.latitude to finalLoc.longitude
+            } else {
+                // Neither a fresh fix nor a cached position is available.
+                // This can happen on first boot, in airplane mode, or on an emulator.
+                Log.w(LocationVMTag, "detectCoordinates: both fresh and cached locations are null")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e(LocationVMTag, "detectCoordinates: exception during location fetch", e)
+            null
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    @SuppressLint("MissingPermission")
+    suspend fun resolveAndSaveLocation(forceRefresh: Boolean = false): LocationResult {
+        _isDetecting.value = true
+
+        // 1. Access LocationManager via getApplication()
+        val context = getApplication<Application>()
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        // 2. Check if Location Services (GPS/Network) are toggled ON in Android Settings
+        val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+
+        if (!isGpsEnabled) {
+            Log.w(LocationVMTag, "resolveAndSaveLocation: GPS/Network provider disabled")
+            // Only fall back to Pune if there is nothing saved yet — don't wipe a
+            // previously chosen manual location just because GPS is currently off.
+            val userLoc = sessionManager.userLocation.first()
+            if (userLoc == null) {
+                Log.d(LocationVMTag, "No saved location — applying Pune fallback")
+                sessionManager.setLocationDetails(getPuneFallback())
+            } else {
+                Log.d(
+                    LocationVMTag,
+                    "GPS off but location already saved (${userLoc.name}) — keeping it"
+                )
+            }
+            _isDetecting.value = false
+            return LocationResult.GpsDisabled
+        }
+
+        val currLocCoord = detectLocCoordinates()
+
+        return if (currLocCoord != null) {
+            // Save with placeholder name. HomeViewModel will overwrite the name with
+            // the locality returned by Swiggy once the restaurant fetch completes.
+            sessionManager.setLocationDetails(
+                UserLocation(
+                    name = "Detecting...",
+                    latitude = currLocCoord.first,
+                    longitude = currLocCoord.second,
+                    isAutoDetected = true
+                )
+            )
+            Log.d(
+                LocationVMTag,
+                "resolveAndSaveLocation: saved coords (${currLocCoord.first}, ${currLocCoord.second})"
+            )
+            _isDetecting.value = false
+            LocationResult.Success
+        } else {
+            Log.w(LocationVMTag, "resolveAndSaveLocation: coordinate detection failed")
+            val current = sessionManager.userLocation.first()
+            if (current == null) {
+                Log.d(LocationVMTag, "No saved location — applying Pune fallback after failure")
+                sessionManager.setLocationDetails(getPuneFallback())
+            } else {
+                Log.d(
+                    LocationVMTag,
+                    "Detection failed but prior location exists (${current.name}) — keeping it"
+                )
+            }
+            _isDetecting.value = false
+            LocationResult.Failure
+        }
+
+    }
+
+
+    /**
+     * Checks if the current saved location is the "Pune Fallback".
      * We use this to determine if we should try to replace it with real GPS data.
      */
     fun isAtFallback(location: UserLocation?): Boolean {
+        if (location == null) {
+            return true
+        }
         val fallback = getPuneFallback()
-        if (location == null) return true
-        return (location.latitude == fallback.latitude && location.longitude == fallback.longitude)
+        return (location.latitude == fallback.latitude &&
+                location.longitude == fallback.longitude)
     }
+
 
     /**
      * Determines if we should attempt an auto-refresh.
@@ -151,121 +310,6 @@ class LocationViewModel(
      */
     fun shouldAutoUpdateLoc(currentLoc: UserLocation?): Boolean {
         return isAtFallback(currentLoc) || currentLoc?.isAutoDetected == true
-    }
-
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    @SuppressLint("MissingPermission")
-    suspend fun resolveAndSaveLocation(forceRefresh: Boolean = false): LocationResult {
-        _isDetecting.value = true
-
-        // Use first() to get the snapshot immediately for the check
-        val currSavedLoc = sessionManager.userLocation.first()
-
-        // 1. Access LocationManager via getApplication()
-        val context = getApplication<Application>()
-        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-
-        // 2. Check if Location Services (GPS/Network) are toggled ON in Android Settings
-        val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
-                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-        if (!isGpsEnabled) {
-            _isDetecting.value = false
-            // Fallback to Pune if we have nothing saved, so the app isn't broken
-            if (currSavedLoc == null) {
-                sessionManager.setLocationDetails(getPuneFallback())
-            }
-            return LocationResult.GpsDisabled
-        }
-
-        // 3. Proceed with actual detection
-        val detected = detectLocationAndFetchDetails() // Your existing FusedLocation logic
-
-        return if (detected != null) {
-            sessionManager.setLocationDetails(detected)
-            _isDetecting.value = false
-            LocationResult.Success
-        } else {
-            // If detection fails (e.g. timeout), set Pune as fallback
-            if (currSavedLoc == null) {
-                sessionManager.setLocationDetails(getPuneFallback())
-            }
-            _isDetecting.value = false
-            LocationResult.Failure
-        }
-
-
-//        // A location is "Truly Manual" only if it's NOT Pune and NOT AutoDetected
-//        val isRealManualLocation = currSavedLoc != null &&
-//                !currSavedLoc.isAutoDetected &&
-//                !isAtFallback(currSavedLoc)
-//
-//        if (isRealManualLocation && !forceRefresh) {
-//            Log.d(LocationVMTag, "Manual location detected. Aborting auto-refresh.")
-//            _isDetecting.value = false
-//            return true
-//        }
-//
-//        return try {
-//            val detectedLocDetails = detectLocationAndFetchDetails()
-//            if (detectedLocDetails != null) {
-//                sessionManager.setLocationDetails(detectedLocDetails)
-//                true
-//            } else {
-//                // If detection fails and we have nothing, set Pune
-//                if (currSavedLoc == null) {
-//                    sessionManager.setLocationDetails(getPuneFallback())
-//                }
-//                false
-//            }
-//        } catch (e: Exception) {
-//            Log.e(LocationVMTag, "Error in resolveAndSaveLocation", e)
-//            false
-//        } finally {
-//            _isDetecting.value = false
-//        }
-
-
-//        val context = getApplication<Application>()
-//        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-//
-//        // 1. Manual Check
-//        val isPune = currSavedLoc?.latitude == fallback.latitude &&
-//                currSavedLoc.longitude == fallback.longitude
-//        val isManual = currSavedLoc != null && !currSavedLoc.isAutoDetected && !isPune
-//
-//        // NEW LOGIC: Only abort if it's manual AND we aren't being forced to refresh
-//        if (isManual && !forceRefresh) {
-//            Log.d(LocationVMTag, "Manual location detected. Aborting auto-refresh.")
-//            _isDetecting.value = false
-//            return true
-//        }
-//        val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
-//                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-//
-//        val hasPermission = ContextCompat.checkSelfPermission(
-//            context, Manifest.permission.ACCESS_COARSE_LOCATION
-//        ) == PackageManager.PERMISSION_GRANTED
-//
-//        var didSucceed = false
-//
-//        try {
-//            if (hasPermission && isGpsEnabled) {
-//                val detectedLocDetails = detectLocationAndFetchDetails()
-//                if (detectedLocDetails != null) {
-//                    sessionManager.setLocationDetails(detectedLocDetails)
-//                    didSucceed = true
-//                } else if (currSavedLoc == null) {
-//                    sessionManager.setLocationDetails(fallback)
-//                }
-//            } else if (currSavedLoc == null) {
-//                sessionManager.setLocationDetails(fallback)
-//            }
-//        } catch (e: Exception) {
-//            Log.e(LocationVMTag, "Error in resolveAndSaveLocation", e)
-//        } finally {
-//            _isDetecting.value = false
-//        }
-//        return didSucceed
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -312,11 +356,4 @@ class LocationViewModel(
             return null
         }
     }
-
-    fun getPuneFallback() = UserLocation(
-        name = "Pune, Maharashtra",
-        latitude = 18.5204,
-        longitude = 73.8567,
-        isAutoDetected = false
-    )
 }

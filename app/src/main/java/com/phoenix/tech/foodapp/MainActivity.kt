@@ -1,9 +1,11 @@
 package com.phoenix.tech.foodapp
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -19,16 +21,17 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Initialize DB and Repository
+        // Initialize DB, Repository, Session Store
         val database = AppDb.getDatabase(this)
         val cartRepository = CartRepository(database.cartDao())
-
         val sessionManager = SessionManager(this)
-        // Use a state to hold the start destination
+
+        // State to hold the startDestination
         var startDestination by mutableStateOf<Any?>(null)
 
         lifecycleScope.launch {

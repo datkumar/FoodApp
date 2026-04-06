@@ -141,13 +141,14 @@ fun LocationSelectionSheet(
                                 }
                             } else {
                                 // Permission is NOT granted: Redirect to App Settings
-                                val intent =
-                                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                                        .apply {
-                                            data = Uri.fromParts(
-                                                "package", context.packageName, null
-                                            )
-                                        }
+                                val intent = Intent(
+                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                                )
+                                    .apply {
+                                        data = Uri.fromParts(
+                                            "package", context.packageName, null
+                                        )
+                                    }
                                 context.startActivity(intent)
                                 Toast.makeText(
                                     context,
@@ -157,42 +158,6 @@ fun LocationSelectionSheet(
                             }
                         }
                     },
-//                    onClick = {
-//                        if (isPermissionGranted) {
-//                            // FIX: Use the scope to launch the suspend function
-//                            scope.launch {
-//                                // Pass forceRefresh = true to bypass the manual location guard
-//                                val status = viewModel.resolveAndSaveLocation(forceRefresh = true)
-//                                if (status == LocationResult.Success) {
-//                                    // Check if a location was actually found or if it just returned the manual one
-//                                    // Usually, if resolveAndSaveLocation returns true, it's safe to dismiss
-//                                    onDismiss() // Close sheet only on success
-//                                } else {
-//                                    // This happens if Permissions are ON but GPS/Network providers are OFF
-//                                    Toast.makeText(
-//                                        context,
-//                                        "Could not detect location. Please check if GPS Location is ON",
-//                                        Toast.LENGTH_LONG
-//                                    ).show()
-//                                }
-//                            }
-//                        } else {
-//                            // Prepare the intent to open THIS app's settings
-//                            val intent = Intent(
-//                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-//                            ).apply {
-//                                data = Uri.fromParts("package", context.packageName, null)
-//                            }
-//                            // Launch the system activity
-//                            context.startActivity(intent)
-//                            // Inform the user WHY they are being moved
-//                            Toast.makeText(
-//                                context,
-//                                "Please enable Location permission in App Settings",
-//                                Toast.LENGTH_SHORT
-//                            ).show()
-//                        }
-//                    },
                     colors = ButtonDefaults.textButtonColors().copy(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     )

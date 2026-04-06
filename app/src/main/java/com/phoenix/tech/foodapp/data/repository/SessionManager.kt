@@ -63,6 +63,7 @@ class SessionManager(context: Context) {
 //            )
 //        }
 //    }
+    
     val userLocation: Flow<UserLocation?> = _dataStore.data
         .map { prefs ->
             val locName = prefs[_keys.locName]
