@@ -3,12 +3,20 @@ package com.phoenix.tech.foodapp.navigation
 import android.Manifest
 import android.app.Activity
 import android.app.Application
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -17,6 +25,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -30,6 +39,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -52,11 +62,15 @@ import com.phoenix.tech.foodapp.ui.screens.RestaurantDetailsScreen
 import com.phoenix.tech.foodapp.ui.screens.SettingsScreen
 import com.phoenix.tech.foodapp.ui.state.HomeViewModel
 import com.phoenix.tech.foodapp.ui.state.HomeViewModelFactory
+import com.phoenix.tech.foodapp.ui.state.LocationResult
 import com.phoenix.tech.foodapp.ui.state.LocationViewModel
 import com.phoenix.tech.foodapp.ui.state.LocationViewModelFactory
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 
+const val MainLayoutPermsTag = "MAIN_LAYOUT_PERMS"
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainAppLayout(
@@ -71,113 +85,207 @@ fun MainAppLayout(
     val context = LocalContext.current
     val application = context.applicationContext as Application
 
-    // Location State
+    // Observe Cart State
+    val cartItems by cartRepository.allCartItems.collectAsState(initial = emptyList())
+    val cartCount = cartItems.sumOf { it.quantity }  // Total items count (Derived state)
+
+
+    // ViewModel state init.
     val locationViewModel: LocationViewModel = viewModel(
         factory = LocationViewModelFactory(sessionManager, application)
     )
+    // HomeViewModel needs a reference to LocationViewModel so it can call
+    // updateLocationNameFromSwiggy() after a successful restaurant fetch.
+    val homeViewModel: HomeViewModel = viewModel(
+        factory = HomeViewModelFactory(sessionManager, locationViewModel)
+    )
+
     val savedLocation by locationViewModel.savedLocation.collectAsState()
+
     // Whether Permissions popup or Location Selection should be shown
-    var showPermissionSettingsDialog by remember { mutableStateOf(false) }
+    var showAppPermissionSettings by remember { mutableStateOf(false) }
     var showLocationSelectionSheet by remember { mutableStateOf(false) }
 
-    // Observe Cart items and their count
-    val cartItems by cartRepository.allCartItems.collectAsState(initial = emptyList())
-    // Derived state: calculate total quantity of all items in cart
-    val cartCount = cartItems.sumOf { it.quantity }
-
-    // Permission Handler
+    // rememberLauncherForActivityResult must be called unconditionally at the
+    // Composable scope level — it cannot be inside a LaunchedEffect or lambda.
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { perms ->
-        val granted = perms.values.any { it }
-        if (granted) {
-            locationViewModel.resolveAndSaveLocation()
-        } else {
-            // Check if user denied permanently
-            val activity = context as Activity
-            val showRationale = ActivityCompat.shouldShowRequestPermissionRationale(
-                activity, Manifest.permission.ACCESS_COARSE_LOCATION
-            )
-            if (!showRationale) {
-                showPermissionSettingsDialog = true
+        Log.d(MainLayoutPermsTag, "INSIDE Permission Launcher")
+
+        // ---- Location ----
+        val locationWasRequested = perms.containsKey(Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (locationWasRequested) {
+            val locationGranted = perms[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                    perms[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+
+            if (locationGranted) {
+                Log.d(MainLayoutPermsTag, "Permission callback: location GRANTED")
+                // Kick off coordinate detection now that we have permission.
+                // resolveAndSaveLocation() does NOT call reverse-geocoding —
+                // it saves coords with "Current Location" as a placeholder name.
+                // HomeViewModel will patch the real name from the Swiggy response.
+                locationViewModel.viewModelScope.launch {
+                    when (val result = locationViewModel.resolveAndSaveLocation()) {
+                        is LocationResult.GpsDisabled ->
+                            Toast.makeText(
+                                context,
+                                "GPS is off. Enable location services for accurate results.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+
+                        is LocationResult.Failure ->
+                            Toast.makeText(
+                                context,
+                                "Couldn't detect location. Using Pune as fallback.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+
+                        is LocationResult.Success ->
+                            Log.d(
+                                MainLayoutPermsTag,
+                                "Permission callback: location resolved successfully"
+                            )
+
+                        else ->
+                            Log.d(
+                                MainLayoutPermsTag,
+                                "Permission callback: unexpected result $result"
+                            )
+                    }
+                }
             } else {
-                // Denied once, trigger resolution (which will use Pune fallback)
-                locationViewModel.resolveAndSaveLocation()
-            }
-        }
-    }
+                // User denied location. Check if they ticked "Don't ask again" —
+                // shouldShowRequestPermissionRationale returns FALSE in that case.
+                Log.d(MainLayoutPermsTag, "Permission callback: location DENIED")
+                // Resolution is complete (denied) — unblock HomeViewModel
+                locationViewModel.markResolutionComplete()
 
-    // 5-Minute Refresh & Initial Load Logic
-    LaunchedEffect(Unit) {
-        while (true) {
-            val hasPermission = ContextCompat.checkSelfPermission(
-                context, Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-
-            if (hasPermission) {
-                // This updates DataStore, which triggers HomeViewModel automatically
-                locationViewModel.resolveAndSaveLocation()
-            } else if (savedLocation == null) {
-                permissionLauncher.launch(
-                    arrayOf(
-                        Manifest.permission.ACCESS_FINE_LOCATION,
-                        Manifest.permission.ACCESS_COARSE_LOCATION
-                    )
+                val activity = context as Activity
+                val canAskAgain = ActivityCompat.shouldShowRequestPermissionRationale(
+                    activity, Manifest.permission.ACCESS_COARSE_LOCATION
                 )
+                if (!canAskAgain) {
+                    // "Don't ask again" was selected — direct user to system settings
+                    Log.d(
+                        MainLayoutPermsTag,
+                        "Permission callback: rationale suppressed → showing settings dialog"
+                    )
+                    showAppPermissionSettings = true
+                } else {
+                    // User dismissed the dialog but can still be asked again later
+                    Log.d(
+                        MainLayoutPermsTag,
+                        "Permission callback: denied but can ask again → using Pune fallback"
+                    )
+                    Toast.makeText(
+                        context, "Using default location (Pune)", Toast.LENGTH_SHORT
+                    ).show()
+                }
+                // Apply Pune fallback so the app isn't stuck in a loading state
+                locationViewModel.viewModelScope.launch {
+                    sessionManager.setLocationDetails(locationViewModel.getPuneFallback())
+                }
             }
-            // Wait 5 minutes before checking/refreshing again
-            delay(5 * 60 * 1000)
+        } else {
+            Log.d(MainLayoutPermsTag, "Permission callback: location was not in this request")
+        }
+
+        // ---- Camera ----
+        val cameraWasRequested = perms.containsKey(Manifest.permission.CAMERA)
+        if (cameraWasRequested) {
+            val cameraGranted = perms[Manifest.permission.CAMERA] == true
+            if (cameraGranted) {
+                Log.d(MainLayoutPermsTag, "Permission callback: camera GRANTED")
+                Toast.makeText(context, "Camera Permission Granted", Toast.LENGTH_SHORT).show()
+            } else {
+                Log.d(MainLayoutPermsTag, "Permission callback: camera DENIED")
+                Toast.makeText(context, "Camera Permission Denied", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Log.d(MainLayoutPermsTag, "Permission callback: camera was not in this request")
         }
     }
 
+
+    // -------------------------------------------------------------------------
+    // One-shot startup: check permission and either detect or request
+    // -------------------------------------------------------------------------
+    // LaunchedEffect(Unit) runs exactly once when MainAppLayout first enters
+    // the composition. We do NOT use hasLocationPermission as a key because
+    // checkSelfPermission is a snapshot read and won't recompose this block
+    // when the permission changes at runtime — that case is handled entirely
+    // inside the permissionLauncher callback above.
+    LaunchedEffect(Unit) {
+        val hasLocationPermission = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        if (hasLocationPermission) {
+            Log.d(
+                MainLayoutPermsTag,
+                "Startup: permission already granted — detecting location"
+            )
+            // Permission was granted in a previous session.
+            // Detect coordinates immediately; name will be patched by HomeViewModel.
+            when (val result = locationViewModel.resolveAndSaveLocation()) {
+                is LocationResult.GpsDisabled ->
+                    Toast.makeText(
+                        context,
+                        "Location Services are OFF. Using saved/fallback location.",
+                        Toast.LENGTH_LONG
+                    ).show()
+
+                is LocationResult.Failure ->
+                    Log.w(
+                        MainLayoutPermsTag,
+                        "Startup: location detection failed, fallback applied"
+                    )
+
+                is LocationResult.Success ->
+                    Log.d(MainLayoutPermsTag, "Startup: location detected successfully")
+
+                else ->
+                    Log.d(MainLayoutPermsTag, "Startup: unexpected result $result")
+            }
+        } else {
+            Log.d(
+                MainLayoutPermsTag,
+                "Startup: no permission — launching request dialog"
+            )
+            // First-time launch (or permission was revoked).
+            // The result lands in permissionLauncher's callback.
+            permissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
+        }
+    }
+
+    val requestCameraPermission = {
+        val hasCameraPermission = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!hasCameraPermission) {
+            Log.d(MainLayoutPermsTag, "Camera: requesting permission")
+            permissionLauncher.launch(arrayOf(Manifest.permission.CAMERA))
+        } else {
+            // Already granted — open the camera directly
+            Log.d(MainLayoutPermsTag, "Camera access already granted. Open camera here...")
+        }
+    }
+
+    // What to show in the TopBar location chip.
+    // Falls back to "Detecting..." while savedLocation is null (initial load).
     val locationDisplayed = savedLocation?.name ?: "Detecting..."
-    val homeViewModel: HomeViewModel = viewModel(
-        factory = HomeViewModelFactory(sessionManager)
-    )
-
-
-    // Permanent Denial Dialog
-//    if (showPermissionSettingsDialog) {
-//        AlertDialog(
-//            onDismissRequest = { showPermissionSettingsDialog = false },
-//            title = {
-//                Text("Location Permission")
-//            },
-//            text = {
-//                Text("We need location access to find nearby restaurants. Please enable it in settings or use default location.")
-//            },
-//            confirmButton = {
-//                TextButton(onClick = {
-//                    val intent = Intent(
-//                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-//                    ).apply {
-//                        data = Uri.fromParts(
-//                            "package",
-//                            context.packageName,
-//                            null
-//                        )
-//                    }
-//                    context.startActivity(intent)
-//                    showPermissionSettingsDialog = false
-//                }) { Text("Open Settings") }
-//            },
-//            dismissButton = {
-//                TextButton(onClick = {
-//                    locationViewModel.resolveAndSaveLocation() // This will trigger Pune fallback
-//                    showPermissionSettingsDialog = false
-//                }) { Text("Use Pune") }
-//            }
-//        )
-//    }
-
 
     fun isTabRoot(): Boolean {
         if (currDestination == null) return false
-
         // Check if the current destination is any of our "Root" tab screens
         return currDestination.hasRoute(Home::class) ||
                 currDestination.hasRoute(Profile::class) ||
-                currDestination.hasRoute(Settings::class)
+                currDestination.hasRoute(AppSettings::class)
     }
 
     fun navigateToTab(route: Any) {
@@ -202,7 +310,7 @@ fun MainAppLayout(
 
             currDestination?.hasRoute(Cart::class) == true -> "My Cart"
             currDestination?.hasRoute(Profile::class) == true -> "My Profile"
-            currDestination?.hasRoute(Settings::class) == true -> "Settings"
+            currDestination?.hasRoute(AppSettings::class) == true -> "Settings"
             currDestination?.hasRoute(Home::class) == true -> "Zwiggy"
             else -> "Zwiggy"
         }
@@ -342,11 +450,16 @@ fun MainAppLayout(
             }
             // PROFILE-TAB branch
             navigation<ProfileTab>(startDestination = Profile) {
-                composable<Profile> { ProfileScreen() }
+                composable<Profile> {
+                    ProfileScreen(
+                        onRequestCameraPermission = { requestCameraPermission() },
+                        onNavigateBack = { mainAppNavCtl.popBackStack() }
+                    )
+                }
             }
             // SETTINGS-TAB branch
-            navigation<SettingsTab>(startDestination = Settings) {
-                composable<Settings> { SettingsScreen() }
+            navigation<SettingsTab>(startDestination = AppSettings) {
+                composable<AppSettings> { SettingsScreen() }
             }
             // CART page (Independent leaf)
             composable<Cart> {
@@ -363,6 +476,43 @@ fun MainAppLayout(
                 )
             }
         }
+    }
+    // PERMISSION SETTINGS REDIRECT DIALOG
+    if (showAppPermissionSettings) {
+        AlertDialog(
+            onDismissRequest = { showAppPermissionSettings = false },
+            title = {
+                Text("Location Permission Required")
+            },
+            text = {
+                Text("You have permanently denied location access. To detect nearby restaurants, please enable it in the App Settings.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showAppPermissionSettings = false
+                        // Open System Settings for this specific app
+                        val intent = Intent(
+                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                        ).apply {
+                            data = Uri.fromParts(
+                                "package",
+                                context.packageName,
+                                null
+                            )
+                        }
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Text("Open Settings")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAppPermissionSettings = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
     // LOCATION SELECTION POP-UP
     if (showLocationSelectionSheet) {

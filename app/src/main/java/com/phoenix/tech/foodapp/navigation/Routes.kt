@@ -18,7 +18,7 @@ import kotlinx.serialization.Serializable
 // Leaf Destination Routes
 @Serializable object Home
 @Serializable object Profile
-@Serializable object Settings
+@Serializable object AppSettings
 @Serializable object Cart
 
 @Serializable

@@ -32,3 +32,4 @@ data class UserLocation(
     val longitude: Double,
     val isAutoDetected: Boolean
 )
+
