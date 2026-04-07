@@ -1,6 +1,8 @@
 package com.phoenix.tech.foodapp.ui.state
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -34,7 +36,7 @@ class HomeViewModelFactory(
 const val HomeVMTag = "HOME_VM"
 
 class HomeViewModel(
-    private val sessionManager: SessionManager,
+    sessionManager: SessionManager,
     private val locationViewModel: LocationViewModel,
     private val repository: RestoListRepository = RestoListRepository()
 ) : ViewModel() {
@@ -51,6 +53,7 @@ class HomeViewModel(
     private var lastHandledRefresh = refreshTrigger.value
 
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @OptIn(ExperimentalCoroutinesApi::class, ExperimentalStdlibApi::class)
     val uiState: StateFlow<HomeUiState> = combine(
         // Only re-emit when lat/lng actually changes, not on every DataStore write
@@ -58,21 +61,38 @@ class HomeViewModel(
         sessionManager.userLocation.distinctUntilChanged { old, new ->
             old?.latitude == new?.latitude && old?.longitude == new?.longitude
         },
-        refreshTrigger
-    ) { location, timestamp -> location to timestamp }
-        .flatMapLatest { (location, timestamp) ->
-            if (location == null) {
-                // Location not yet resolved — show spinner, don't fetch yet
-                Log.d(HomeVMTag, "uiState: location is null, waiting...")
+        refreshTrigger,
+        locationViewModel.isResolvingLocation
+    ) { location, timestamp, isResolving ->
+        Triple(location, timestamp, isResolving)
+    }.flatMapLatest { (location, timestamp, isResolving) ->
+
+        when {
+            // Still waiting for startup permission/GPS resolution to finish —
+            // hold at Loading so we don't fetch with stale coords
+            isResolving -> {
+                Log.d(
+                    HomeVMTag,
+                    "uiState: resolution in progress — holding at Loading"
+                )
                 flowOf(HomeUiState.Loading)
-            } else {
+            }
+
+            (location == null) -> {
+                // Resolution finished but somehow no location was set (shouldn't
+                // happen since every path sets a fallback, but guard anyway)
+                Log.w(
+                    HomeVMTag,
+                    "uiState: resolved but location is null — holding at Loading"
+                )
+                flowOf(HomeUiState.Loading)
+            }
+
+            else -> {
                 val isManualRefresh = timestamp > lastHandledRefresh
                 // Check if we actually need a network call
                 val isNewLocation = location.latitude != lastFetchedLocation?.latitude ||
                         location.longitude != lastFetchedLocation?.longitude
-
-                // Advance the cursor regardless of whether we fetch, so the same
-                // timestamp doesn't re-trigger a fetch on the next combine emission.
                 lastHandledRefresh = timestamp
 
                 if (isNewLocation || isManualRefresh) {
@@ -82,26 +102,26 @@ class HomeViewModel(
                     )
                     fetchRestaurantsFlow(location)
                 } else {
-                    // Coords and refresh trigger are unchanged — reuse existing state
                     Log.d(
                         HomeVMTag,
                         "uiState: skipping fetch — location and trigger unchanged"
                     )
                     flowOf(uiState.value)
                 }
-
             }
         }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = HomeUiState.Loading
-        )
+
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = HomeUiState.Loading
+    )
 
     fun refreshRestaurants() {
         refreshTrigger.value = System.currentTimeMillis()
     }
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private fun fetchRestaurantsFlow(location: UserLocation) = flow {
         emit(HomeUiState.Loading)
         try {
@@ -127,7 +147,6 @@ class HomeViewModel(
             emit(HomeUiState.Success(data))
 
         } catch (e: Exception) {
-
             Log.e(HomeVMTag, "fetchRestaurantsFlow: network error", e)
             emit(HomeUiState.Error(e.message ?: "Failed to load restaurants"))
         }

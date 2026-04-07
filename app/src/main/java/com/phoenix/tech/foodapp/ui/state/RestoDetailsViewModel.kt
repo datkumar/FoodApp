@@ -19,6 +19,7 @@ class RestoDetailsViewModelFactory(
     private val cartRepository: CartRepository,
     private val sessionManager: SessionManager
 ) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return RestoDetailsViewModel(cartRepository, sessionManager) as T
     }

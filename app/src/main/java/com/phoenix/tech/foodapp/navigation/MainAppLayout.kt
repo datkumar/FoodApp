@@ -158,6 +158,9 @@ fun MainAppLayout(
                 // User denied location. Check if they ticked "Don't ask again" —
                 // shouldShowRequestPermissionRationale returns FALSE in that case.
                 Log.d(MainLayoutPermsTag, "Permission callback: location DENIED")
+                // Resolution is complete (denied) — unblock HomeViewModel
+                locationViewModel.markResolutionComplete()
+
                 val activity = context as Activity
                 val canAskAgain = ActivityCompat.shouldShowRequestPermissionRationale(
                     activity, Manifest.permission.ACCESS_COARSE_LOCATION

@@ -110,8 +110,7 @@ fun LocationSelectionSheet(
                     onClick = {
                         scope.launch {
                             if (isPermissionGranted) {
-                                // Pass forceRefresh = true to override any manual selection
-                                val result = viewModel.resolveAndSaveLocation(forceRefresh = true)
+                                val result = viewModel.resolveAndSaveLocation()
 
                                 when (result) {
                                     is LocationResult.Success -> {

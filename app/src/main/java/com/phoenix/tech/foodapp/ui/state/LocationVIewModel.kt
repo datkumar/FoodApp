@@ -21,6 +21,7 @@ import com.phoenix.tech.foodapp.data.network.HttpClient.geoApi
 import com.phoenix.tech.foodapp.data.repository.SessionManager
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -44,6 +45,7 @@ class LocationViewModelFactory(
     private val application: Application // Use Application instead of Activity Context
 ) : ViewModelProvider.Factory {
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(LocationViewModel::class.java)) {
@@ -61,7 +63,7 @@ sealed class LocationResult {
 }
 
 
-class LocationViewModel(
+@RequiresApi(Build.VERSION_CODES.TIRAMISU) class LocationViewModel(
     private val sessionManager: SessionManager,
     application: Application
 ) : AndroidViewModel(application) {
@@ -76,6 +78,7 @@ class LocationViewModel(
     )
 
     // Location detection ongoing state
+    // Used by LocationSelectionSheet as well as during Startup
     private val _isDetecting = MutableStateFlow(false)
     val isDetecting = _isDetecting.asStateFlow()
 
@@ -83,9 +86,48 @@ class LocationViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
 
+    // Starts as true so HomeViewModel waits before making its first fetch.
+    // GPS off, or permission denied). Never goes back to true after that —
+    // subsequent re-detections (manual refresh, location sheet) don't need to
+    // block the UI since there's already a valid location displayed.
+    // Used only during startup resolution
+    private val _isResolvingLocation = MutableStateFlow(true)
+    val isResolvingLocation = _isResolvingLocation.asStateFlow()
+
     // Search query term state
     private val _query = MutableStateFlow("")
     val query = _query.asStateFlow()
+
+    init {
+        startPeriodicLocationUpdates()
+    }
+
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    private fun startPeriodicLocationUpdates() {
+        viewModelScope.launch {
+            // Wait for startup resolution to finish before starting the loop —
+            // otherwise the first tick could race with the initial detection
+            isResolvingLocation.first { !it }
+
+            while (true) {
+                delay(5 * 60 * 1000L) // 5 mins
+
+                // Only auto-refresh if the current location is auto-detected.
+                // If the user manually searched for a location, respect that choice
+                // and don't silently overwrite it with GPS coords.
+                val current = sessionManager.userLocation.first()
+                if (current?.isAutoDetected == true) {
+                    Log.d(LocationVMTag, "Periodic update: triggering location refresh")
+                    resolveAndSaveLocation()
+                } else {
+                    Log.d(
+                        LocationVMTag,
+                        "Periodic update: skipping — location is manual ('${current?.name}')"
+                    )
+                }
+            }
+        }
+    }
 
     // Location search results state
     @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class, ExperimentalCoroutinesApi::class)
@@ -222,7 +264,7 @@ class LocationViewModel(
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @SuppressLint("MissingPermission")
-    suspend fun resolveAndSaveLocation(forceRefresh: Boolean = false): LocationResult {
+    suspend fun resolveAndSaveLocation(): LocationResult {
         _isDetecting.value = true
 
         // 1. Access LocationManager via getApplication()
@@ -246,13 +288,13 @@ class LocationViewModel(
                     "GPS off but location already saved (${userLoc.name}) — keeping it"
                 )
             }
-            _isDetecting.value = false
+            _isResolvingLocation.value = false; _isDetecting.value = false
             return LocationResult.GpsDisabled
         }
 
         val currLocCoord = detectLocCoordinates()
 
-        return if (currLocCoord != null) {
+        if (currLocCoord != null) {
             // Save with placeholder name. HomeViewModel will overwrite the name with
             // the locality returned by Swiggy once the restaurant fetch completes.
             sessionManager.setLocationDetails(
@@ -267,8 +309,8 @@ class LocationViewModel(
                 LocationVMTag,
                 "resolveAndSaveLocation: saved coords (${currLocCoord.first}, ${currLocCoord.second})"
             )
-            _isDetecting.value = false
-            LocationResult.Success
+            _isResolvingLocation.value = false; _isDetecting.value = false
+            return LocationResult.Success
         } else {
             Log.w(LocationVMTag, "resolveAndSaveLocation: coordinate detection failed")
             val current = sessionManager.userLocation.first()
@@ -281,10 +323,16 @@ class LocationViewModel(
                     "Detection failed but prior location exists (${current.name}) — keeping it"
                 )
             }
-            _isDetecting.value = false
-            LocationResult.Failure
+            _isResolvingLocation.value = false; _isDetecting.value = false
+            return LocationResult.Failure
         }
 
+    }
+
+    // Called externally only when resolution ends without going through
+    // resolveAndSaveLocation() — i.e. the permission-denied path.
+    fun markResolutionComplete() {
+        _isResolvingLocation.value = false
     }
 
 
