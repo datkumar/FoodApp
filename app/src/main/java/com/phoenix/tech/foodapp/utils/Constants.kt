@@ -9,5 +9,13 @@ object AppConstants {
     const val LOC_LAT = "loc_lat"
     const val LOC_LONG = "loc_long"
     const val LOC_IS_AUTO = "loc_is_auto"
+}
 
+
+class RestoSharedElemAnimateKeys(private val restoId: String) {
+    val restoName = "restoName-$restoId"
+    val img = "restoImg-$restoId"
+    val rating = "rating-$restoId"
+    val slaTime = "slaTime-$restoId"
+    val slaDist = "slaDist-$restoId"
 }

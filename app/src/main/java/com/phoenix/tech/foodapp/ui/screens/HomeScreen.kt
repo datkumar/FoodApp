@@ -1,10 +1,13 @@
 package com.phoenix.tech.foodapp.ui.screens
 
+import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
+import androidx.annotation.RequiresApi
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -17,7 +20,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -29,30 +31,33 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.phoenix.tech.foodapp.R
-import com.phoenix.tech.foodapp.data.model.SampleRestoListing
 import com.phoenix.tech.foodapp.ui.components.RestaurantCard
-import com.phoenix.tech.foodapp.ui.components.RestaurantCardPreview
 import com.phoenix.tech.foodapp.ui.state.HomeUiState
 import com.phoenix.tech.foodapp.ui.state.HomeViewModel
-import com.phoenix.tech.foodapp.ui.theme.AppTheme
 
+private const val gridPadding = 8
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
-    onRestaurantClick: (restoId: String, restoName: String) -> Unit
+    onRestaurantClick: (
+        restoId: String, restoName: String, imgId: String,
+        avgRating: Double, totalRatingsString: String,
+        slaTime: String, slaDistance: String,
+        cuisines: String,
+    ) -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
     var showExitConfirmDialog by remember { mutableStateOf(false) }
-
 
     // Handle App Exit Confirmation
     BackHandler { showExitConfirmDialog = true }
@@ -113,10 +118,18 @@ fun HomeScreen(
 
             is HomeUiState.Success -> {
                 if (state.restoListingItems.isEmpty()) {
-                    Box(
+                    Column(
                         modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        Image(
+                            painter = painterResource(R.drawable.error_msg),
+                            contentDescription = "Error illustration",
+                            modifier = Modifier.height(200.dp),
+                            contentScale = ContentScale.FillHeight,
+                        )
+                        Spacer(Modifier.height(10.dp))
                         Text(
                             "Oops! No restaurants found at this location",
                             style = MaterialTheme.typography.bodyLarge
@@ -124,10 +137,11 @@ fun HomeScreen(
                     }
                 } else {
                     LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
+                        columns = GridCells.Fixed(1),
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(8.dp)
-                    ) {
+                        contentPadding = PaddingValues(gridPadding.dp),
+
+                        ) {
                         items(state.restoListingItems) { restaurant ->
                             RestaurantCard(
                                 restaurant = restaurant.info,
@@ -135,58 +149,70 @@ fun HomeScreen(
                                     onRestaurantClick(
                                         restaurant.info.id,
                                         restaurant.info.name,
+                                        restaurant.info.cloudinaryImageId,
+                                        restaurant.info.avgRating,
+                                        restaurant.info.totalRatingsString,
+                                        restaurant.info.sla.slaString,
+                                        restaurant.info.sla.lastMileTravelString,
+                                        restaurant.info.cuisines.joinToString()
                                     )
                                 },
-                                modifier = Modifier.padding(
-                                    horizontal = 6.dp, vertical = 8.dp
-                                )
+                                sharedTransitionScope = sharedTransitionScope,
+                                animatedVisibilityScope = animatedVisibilityScope,
+                                modifier = Modifier.padding(gridPadding.dp),
                             )
+                            Spacer(Modifier.height(5.dp))
                         }
                     }
                 }
-
-
             }
 
             is HomeUiState.Error -> {
                 // TODO: Error UI here
-
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Error fetching restaurants")
-                }
-            }
-        }
-    }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    val context = LocalContext.current
-    val sampleRestaurant = SampleRestoListing.sampleRestoListingItem(context)
-    val restaurantList = List(10) { sampleRestaurant }
-
-    AppTheme(darkTheme = false) {
-        Scaffold() { contentPadding ->
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(contentPadding)
-                    .padding(8.dp),
-                contentPadding = PaddingValues(bottom = 30.dp)
-            ) {
-                items(restaurantList) { restaurant ->
-                    RestaurantCardPreview(
-//                        restaurant = restaurant.info,
-                        modifier = Modifier.padding(
-                            horizontal = 6.dp, vertical = 8.dp
-                        )
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.error_msg),
+                        contentDescription = "Error illustration",
+                        modifier = Modifier.height(200.dp),
+                        contentScale = ContentScale.FillHeight,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "An error occurred while fetching restaurants",
+                        style = MaterialTheme.typography.bodyLarge
                     )
                 }
             }
-
         }
     }
 }
+
+
+//@Preview(showBackground = true)
+//@Composable
+//fun HomeScreenPreview() {
+//    val context = LocalContext.current
+//    val sampleRestaurant = SampleRestoListing.sampleRestoListingItem(context)
+//    val restaurantList = List(10) { sampleRestaurant }
+//
+//    AppTheme(darkTheme = false) {
+//        Scaffold() { contentPadding ->
+//            LazyVerticalGrid(
+//                columns = GridCells.Fixed(1),
+//                modifier = Modifier.fillMaxSize(),
+//                contentPadding = PaddingValues(gridPadding.dp)
+//            ) {
+//                items(restaurantList) { restaurant ->
+//                    RestaurantCardPreview(
+//                        modifier = Modifier.padding(gridPadding.dp)
+//                    )
+//                }
+//            }
+//
+//        }
+//    }
+//}

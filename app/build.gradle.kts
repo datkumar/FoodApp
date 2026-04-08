@@ -84,6 +84,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.compose.animation)
 
     // Testing & Debugging
     androidTestImplementation(platform(libs.androidx.compose.bom))
