@@ -55,8 +55,8 @@ val AppTypography = Typography(
     headlineMedium = TextStyle(
         fontFamily = DesignerFont,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 26.sp,
-        lineHeight = 30.sp
+        fontSize = 21.sp,
+        lineHeight = 25.sp
     ),
 
     // 3. RECIPE CARDS & SUB-HEADERS

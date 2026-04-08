@@ -14,6 +14,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
@@ -283,9 +284,9 @@ fun MainAppLayout(
     fun isTabRoot(): Boolean {
         if (currDestination == null) return false
         // Check if the current destination is any of our "Root" tab screens
-        return currDestination.hasRoute(Home::class) ||
-                currDestination.hasRoute(Profile::class) ||
-                currDestination.hasRoute(AppSettings::class)
+        return currDestination.hasRoute(HomeRoute::class) ||
+                currDestination.hasRoute(ProfileRoute::class) ||
+                currDestination.hasRoute(AppSettingsRoute::class)
     }
 
     fun navigateToTab(route: Any) {
@@ -302,16 +303,16 @@ fun MainAppLayout(
 
     fun getTopBarTitle(): String {
         return when {
-            currDestination?.hasRoute(RestaurantDetails::class) == true -> {
+            currDestination?.hasRoute(RestaurantDetailsRoute::class) == true -> {
                 // Extracting args from the backstack entry
-                val args = currBackStackState?.toRoute<RestaurantDetails>()
+                val args = currBackStackState?.toRoute<RestaurantDetailsRoute>()
                 args?.restoName ?: "Restaurant Info"
             }
 
-            currDestination?.hasRoute(Cart::class) == true -> "My Cart"
-            currDestination?.hasRoute(Profile::class) == true -> "My Profile"
-            currDestination?.hasRoute(AppSettings::class) == true -> "Settings"
-            currDestination?.hasRoute(Home::class) == true -> "Zwiggy"
+            currDestination?.hasRoute(CartRoute::class) == true -> "My Cart"
+            currDestination?.hasRoute(ProfileRoute::class) == true -> "My Profile"
+            currDestination?.hasRoute(AppSettingsRoute::class) == true -> "Settings"
+            currDestination?.hasRoute(HomeRoute::class) == true -> "Zwiggy"
             else -> "Zwiggy"
         }
     }
@@ -324,11 +325,11 @@ fun MainAppLayout(
             contentColor = MaterialTheme.colorScheme.primary,
         ) {
             val navItems = listOf(
-                Triple(HomeTab, "Home", painterResource(R.drawable.ic_home)),
-                Triple(ProfileTab, "Profile", painterResource(R.drawable.ic_user)),
-                Triple(SettingsTab, "Settings", painterResource(R.drawable.ic_settings))
+                Triple(HomeTabRoute, "Home", painterResource(R.drawable.ic_home)),
+                Triple(ProfileTabRoute, "Profile", painterResource(R.drawable.ic_user)),
+                Triple(SettingsTabRoute, "Settings", painterResource(R.drawable.ic_settings))
             )
-            val tabStartDestinations = listOf(Home, ProfileTab, SettingsTab)
+            val tabStartDestinations = listOf(HomeRoute, ProfileTabRoute, SettingsTabRoute)
 
             navItems.forEachIndexed { index, (tab, label, icon) ->
                 val isSelected = currDestination?.hierarchy?.any { it.hasRoute(tab::class) } == true
@@ -373,107 +374,128 @@ fun MainAppLayout(
 
 
     // ENTIRE PAGE'S LAYOUT
-    Scaffold(
-        topBar = {
-            // Dynamically set TopBar
-            CustomTopBar(
-                title = getTopBarTitle(),
-                isHomeRoute = currDestination?.hasRoute(Home::class) == true,
-                isCartRoute = currDestination?.hasRoute(Cart::class) == true,
-                showBack = !(isTabRoot()),
-                cartCount = cartCount,
-                displayedLocation = locationDisplayed,
-                onBackClick = { mainAppNavCtl.navigateUp() },
-                onCartClick = { mainAppNavCtl.navigate(Cart) },
-                onLocationClick = { showLocationSelectionSheet = true }
-            )
-        },
-        bottomBar = { BottomNavBar() }
-    ) { innerPadding ->
-        NavHost(
-            navController = mainAppNavCtl,
-            startDestination = HomeTab, // Default tab
-            modifier = Modifier.padding(innerPadding),
-            // Navigation Transition Animations
-            enterTransition = {
-                slideIntoContainer(
-                    towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                    animationSpec = tween(300)
+    SharedTransitionLayout { // For hosting shared-element transition animations
+        Scaffold(
+            topBar = {
+                // Dynamically set TopBar
+                CustomTopBar(
+                    title = getTopBarTitle(),
+                    isHomeRoute = currDestination?.hasRoute(HomeRoute::class) == true,
+                    isCartRoute = currDestination?.hasRoute(CartRoute::class) == true,
+                    showBack = !(isTabRoot()),
+                    cartCount = cartCount,
+                    displayedLocation = locationDisplayed,
+                    onBackClick = { mainAppNavCtl.navigateUp() },
+                    onCartClick = { mainAppNavCtl.navigate(CartRoute) },
+                    onLocationClick = { showLocationSelectionSheet = true }
                 )
             },
-            exitTransition = {
-                slideOutOfContainer(
-                    towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                    animationSpec = tween(300)
-                )
-            },
-            popEnterTransition = {
-                slideIntoContainer(
-                    towards = AnimatedContentTransitionScope.SlideDirection.End,
-                    animationSpec = tween(300)
-                )
-            },
-            popExitTransition = {
-                slideOutOfContainer(
-                    towards = AnimatedContentTransitionScope.SlideDirection.End,
-                    animationSpec = tween(300)
-                )
-            }
-        ) {
-            // HOME-TAB branch
-            navigation<HomeTab>(
-                startDestination = Home // Default screen within Default tab
+            bottomBar = { BottomNavBar() }
+        ) { innerPadding ->
+            NavHost(
+                navController = mainAppNavCtl,
+                startDestination = HomeTabRoute, // Default tab
+                modifier = Modifier.padding(innerPadding),
+                // Navigation Transition Animations
+                enterTransition = {
+                    slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                        animationSpec = tween(300)
+                    )
+                },
+                exitTransition = {
+                    slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                        animationSpec = tween(300)
+                    )
+                },
+                popEnterTransition = {
+                    slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.End,
+                        animationSpec = tween(300)
+                    )
+                },
+                popExitTransition = {
+                    slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.End,
+                        animationSpec = tween(300)
+                    )
+                }
             ) {
-                // HomeScreen
-                composable<Home> {
-                    HomeScreen(
-                        viewModel = homeViewModel,
-                        onRestaurantClick = { restoId: String, restoName: String ->
-                            mainAppNavCtl.navigate(
-                                RestaurantDetails(
-                                    restoId = restoId,
-                                    restoName = restoName
+                // HOME-TAB branch
+                navigation<HomeTabRoute>(
+                    startDestination = HomeRoute // Default screen within Default tab
+                ) {
+                    // HomeScreen
+                    composable<HomeRoute> {
+                        HomeScreen(
+                            viewModel = homeViewModel,
+                            onRestaurantClick = { restoId: String, restoName: String, imgId: String,
+                                                  avgRating: Double, totalRatingsString: String,
+                                                  slaTime: String, slaDist: String, cuisines: String ->
+                                mainAppNavCtl.navigate(
+                                    RestaurantDetailsRoute(
+                                        restoId = restoId,
+                                        restoName = restoName,
+                                        imgId = imgId,
+                                        avgRating = avgRating,
+                                        totalRatingsString = totalRatingsString,
+                                        slaTime = slaTime,
+                                        slaDist = slaDist,
+                                        cuisines = cuisines
+                                    )
                                 )
-                            )
-                        }
-                    )
-                }
-                // Restaurant Details screen
-                composable<RestaurantDetails> { backStackEntry ->
-                    val args: RestaurantDetails = backStackEntry.toRoute()
-                    RestaurantDetailsScreen(
-                        restoId = args.restoId,
-                        cartRepository = cartRepository,
-                        sessionManager = sessionManager
-                    )
-                }
-            }
-            // PROFILE-TAB branch
-            navigation<ProfileTab>(startDestination = Profile) {
-                composable<Profile> {
-                    ProfileScreen(
-                        onRequestCameraPermission = { requestCameraPermission() },
-                        onNavigateBack = { mainAppNavCtl.popBackStack() }
-                    )
-                }
-            }
-            // SETTINGS-TAB branch
-            navigation<SettingsTab>(startDestination = AppSettings) {
-                composable<AppSettings> { SettingsScreen() }
-            }
-            // CART page (Independent leaf)
-            composable<Cart> {
-                CartScreen(
-                    cartRepository = cartRepository,
-                    sessionManager = sessionManager,
-                    onNavigateBack = { mainAppNavCtl.popBackStack() },
-                    cartEmptyRedirect = {
-                        mainAppNavCtl.navigate(Home) {
-                            // Good practice: Clear backstack when redirecting to Home from empty cart
-                            popUpTo(Home) { inclusive = true }
-                        }
+                            },
+                            sharedTransitionScope = this@SharedTransitionLayout,
+                            animatedVisibilityScope = this@composable,
+                        )
                     }
-                )
+                    // Restaurant Details screen
+                    composable<RestaurantDetailsRoute> { backStackEntry ->
+                        val args: RestaurantDetailsRoute = backStackEntry.toRoute()
+                        RestaurantDetailsScreen(
+                            restoId = args.restoId,
+                            restoName = args.restoName,
+                            imgId = args.imgId,
+                            avgRating = args.avgRating,
+                            totalRatingsString = args.totalRatingsString,
+                            slaTime = args.slaTime,
+                            slaDist = args.slaDist,
+                            cuisines = args.cuisines,
+                            cartRepository = cartRepository,
+                            sessionManager = sessionManager,
+                            sharedTransitionScope = this@SharedTransitionLayout,
+                            animatedVisibilityScope = this@composable,
+                        )
+                    }
+                }
+                // PROFILE-TAB branch
+                navigation<ProfileTabRoute>(startDestination = ProfileRoute) {
+                    composable<ProfileRoute> {
+                        ProfileScreen(
+                            onRequestCameraPermission = { requestCameraPermission() },
+                            onNavigateBack = { mainAppNavCtl.popBackStack() }
+                        )
+                    }
+                }
+                // SETTINGS-TAB branch
+                navigation<SettingsTabRoute>(startDestination = AppSettingsRoute) {
+                    composable<AppSettingsRoute> { SettingsScreen() }
+                }
+                // CART page (Independent leaf)
+                composable<CartRoute> {
+                    CartScreen(
+                        cartRepository = cartRepository,
+                        sessionManager = sessionManager,
+                        onNavigateBack = { mainAppNavCtl.popBackStack() },
+                        cartEmptyRedirect = {
+                            mainAppNavCtl.navigate(HomeRoute) {
+                                // Good practice: Clear backstack when redirecting to Home from empty cart
+                                popUpTo(HomeRoute) { inclusive = true }
+                            }
+                        }
+                    )
+                }
             }
         }
     }

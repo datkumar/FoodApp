@@ -1,13 +1,18 @@
 package com.phoenix.tech.foodapp.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -32,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -54,9 +60,14 @@ import com.phoenix.tech.foodapp.ui.state.RestoDetailsViewModel
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun RestaurantDetailsScreen(
-    restoId: String,
+    restoId: String, restoName: String, imgId: String,
+    avgRating: Double, totalRatingsString: String,
+    slaTime: String, slaDist: String,
+    cuisines: String,
     cartRepository: CartRepository,
-    sessionManager: SessionManager
+    sessionManager: SessionManager,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     // Create the factory
     val factory = remember(cartRepository, sessionManager) {
@@ -72,36 +83,71 @@ fun RestaurantDetailsScreen(
         viewModel.fetchRestaurantDetails(restoId)
     }
 
-    when (val state = uiState) {
-        is RestoDetailsUiState.Loading -> {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularWavyProgressIndicator()
+    Column {
+        // Render the header IMMEDIATELY so the transition has a target
+        RestaurantInfoHeader(
+            restoId = restoId,
+            restoName = restoName,
+            imgId = imgId,
+            avgRating = avgRating,
+            totalRatingsString = totalRatingsString,
+            slaTime = slaTime,
+            slaDist = slaDist,
+            cuisines= cuisines,
+            sharedTransitionScope = sharedTransitionScope,
+            animatedVisibilityScope = animatedVisibilityScope
+        )
+
+        when (val state = uiState) {
+            is RestoDetailsUiState.Loading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularWavyProgressIndicator()
+                }
             }
-        }
 
-        is RestoDetailsUiState.Success -> {
-            val cartItems by viewModel.cartItems.collectAsStateWithLifecycle()
+            is RestoDetailsUiState.Success -> {
+                val cartItems by viewModel.cartItems.collectAsStateWithLifecycle()
 
-            RestaurantDetailsSuccessResultLayout(
-                restoDetailsResult = state.restoDetailsResult,
-                cartItems = cartItems,
-                onUpdateCart = { item, qty ->
-                    viewModel.updateCart(
-                        restaurant = state.restoDetailsResult.restoInfo.toEntity(),
-                        item = item,
-                        newQty = qty
+                RestaurantDetailsSuccessResultLayout(
+                    restoDetailsResult = state.restoDetailsResult,
+                    cartItems = cartItems,
+                    onUpdateCart = { item, qty ->
+                        viewModel.updateCart(
+                            restaurant = state.restoDetailsResult.restoInfo.toEntity(),
+                            item = item,
+                            newQty = qty
+                        )
+                    }
+                )
+            }
+
+            is RestoDetailsUiState.Error -> {
+                // TODO: Error UI here
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.error_msg),
+                        contentDescription = "Error illustration",
+                        modifier = Modifier.height(200.dp),
+                        contentScale = ContentScale.FillHeight,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "An error occurred while fetching restaurant details",
+                        style = MaterialTheme.typography.bodyLarge
                     )
                 }
-            )
-        }
-
-        is RestoDetailsUiState.Error -> {
-            // TODO: Error UI here
+            }
         }
     }
+
+
 }
 
 @Composable
@@ -114,11 +160,6 @@ fun RestaurantDetailsSuccessResultLayout(
     val currentCategory = restoDetailsResult.categoryItems[selectedCategoryIdx]
 
     Column(modifier = Modifier.fillMaxSize()) {
-
-        RestaurantInfoHeader(
-            restoInfo = restoDetailsResult.restoInfo
-        )
-
         // --- HORIZONTAL CATEGORY CHIPS ---
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
@@ -142,9 +183,9 @@ fun RestaurantDetailsSuccessResultLayout(
         // --- DYNAMIC CONTENT AREA ---
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp)
+            contentPadding = PaddingValues(15.dp)
         ) {
-            // Case A: Items are directly in the category
+            // Case A: Individual Items are directly in the category
             currentCategory.itemCards?.let { items ->
                 items(items) { wrapper ->
                     val apiItem = wrapper.card.info
@@ -168,7 +209,6 @@ fun RestaurantDetailsSuccessResultLayout(
                     )
                 }
             }
-
             // Case B: Subcategories exist
             currentCategory.subCategories?.let { subCategories ->
                 items(subCategories) { subCategory ->
@@ -202,7 +242,7 @@ fun SubCategoryDropdown(
             onClick = { isExpanded = !isExpanded },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            color = MaterialTheme.colorScheme.surface
         ) {
             Row(
                 modifier = Modifier.padding(16.dp),

@@ -9,36 +9,19 @@ val lightScheme = lightColorScheme(
     onPrimary = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFFFFDBD1),
     onPrimaryContainer = Color(0xFF9F2700),
-    secondary = Color(0xFF2D3333),        // Dark Charcoal for accents
+    secondary = Color(0xFF646363),        // Dark Charcoal for accents
     onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFE0E3E3),
+    secondaryContainer = Color(0xFFE7E7E7),
     onSecondaryContainer = Color(0xFF191C1C),
     tertiary = Color(0xFF2E7D32),         // Healthy Green
     onTertiary = Color(0xFFFFFFFF),
     background = Color(0xFFF8F8F8),       // Very light grey background
-    surface = Color(0xFFFFFFFF),          // Pure white cards
+    surface = Color(0xFFEEEEEE),          // Pure white cards
     onSurface = Color(0xFF191C1C),
     surfaceVariant = Color(0xFFF0F0F0),   // Search bars/input fields
     onSurfaceVariant = Color(0xFF444748),
     outline = Color(0xFF747878)
 )
-
-object AppTextFieldColors {
-    val Success = Color(0xFF329836)
-    val Error = Color(0xFFFF1818)
-    val Default = Color(0xFF8F8E8E)
-    val Focused = Color(0xFF286DD5)
-}
-
-fun getRatingColor(rating: Double): Color {
-    return when (rating) {
-        in 3.5..5.0 -> Color(0xFF15A91C)
-        in 2.5..3.5 -> Color(0xFFFF9800)
-        else -> Color(0xFFFA3232)
-    }
-}
-
-
 val darkScheme = darkColorScheme(
     primary = Color(0xFFFFB187),          // Softer orange for dark mode
     onPrimary = Color(0xFF5E1700),
@@ -57,3 +40,22 @@ val darkScheme = darkColorScheme(
     onSurfaceVariant = Color(0xFFC4C7C8),
     outline = Color(0xFF8E9192),
 )
+
+
+object AppTextFieldColors {
+    val Success = Color(0xFF329836)
+    val Error = Color(0xFFFF1818)
+    val Default = Color(0xFF8F8E8E)
+    val Focused = Color(0xFF286DD5)
+}
+
+fun getRatingColor(rating: Double): Color {
+    return when (rating) {
+        in 4.0..5.0 -> Color(0xFF1A8D51)
+        in 3.0..4.0 -> Color(0xFF56B72B)
+        in 2.0..3.0 -> Color(0xFFFF9800)
+        in 0.0..2.0 -> Color(0xFFFA3232)
+        else -> Color(0xFF696767) // Out of range
+    }
+}
+

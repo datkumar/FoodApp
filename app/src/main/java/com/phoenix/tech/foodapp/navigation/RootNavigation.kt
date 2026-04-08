@@ -21,31 +21,32 @@ fun RootNavigation(
     sessionManager: SessionManager
 ) {
     val rootNavCtl = rememberNavController()
-    val resolvedStartDest = if (startDestination is MainAppGraph) MainAppGraph else AuthGraph
+    val resolvedStartDest =
+        if (startDestination is MainAppGraphRoute) MainAppGraphRoute else AuthGraphRoute
 
     NavHost(
         navController = rootNavCtl,
         startDestination = resolvedStartDest
     ) {
         // Auth Graph
-        navigation<AuthGraph>(startDestination = Login) {
-            composable<Login> {
+        navigation<AuthGraphRoute>(startDestination = LoginRoute) {
+            composable<LoginRoute> {
                 // Obtain the ViewModel here
                 val loginViewModel: LoginViewModel = viewModel()
 
                 LoginScreen(
                     viewModel = loginViewModel,
                     onLoginSuccess = {
-                        rootNavCtl.navigate(MainAppGraph) {
+                        rootNavCtl.navigate(MainAppGraphRoute) {
                             // Clear AuthGraph from backstack
-                            popUpTo(AuthGraph) { inclusive = true }
+                            popUpTo(AuthGraphRoute) { inclusive = true }
                         }
                     }
                 )
             }
         }
         // Main-App Graph
-        composable<MainAppGraph> {
+        composable<MainAppGraphRoute> {
             MainAppLayout(
                 cartRepository = cartRepository,
                 sessionManager = sessionManager

@@ -66,10 +66,14 @@ data class RestoListingItemData(
     val id: String,
     val name: String,
     val cloudinaryImageId: String,
+
     val avgRating: Double,
+    val totalRatingsString: String,
+
     val locality: String,
     val areaName: String,
     val cuisines: List<String>,
+
     val sla: RestoListingItemSla
 )
 
@@ -83,7 +87,7 @@ data class RestoListingItemCta(
 data class RestoListingItemSla(
     val deliveryTime: Int,
     val slaString: String,
-    val lastMileTravelString: String? = null
+    val lastMileTravelString: String
 )
 
 object SampleRestoListing {
@@ -108,11 +112,13 @@ object SampleRestoListing {
         cloudinaryImageId = "RX_THUMBNAIL/IMAGES/VENDOR/2026/3/5/7cdc93ac-fc55-47f8-a908-ed8bf95cf5fd_732719.JPG",
         cuisines = listOf("Desserts"),
         avgRating = 4.4,
+        totalRatingsString = "1.7k+",
         locality = "Hinjawadi",
         areaName = "Hinjawadi",
         sla = RestoListingItemSla(
             deliveryTime = 29,
-            slaString = "25-30 mins"
+            slaString = "25-30 mins",
+            lastMileTravelString = "1.6 km"
         ),
     )
 }

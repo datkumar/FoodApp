@@ -13,8 +13,8 @@ import androidx.lifecycle.lifecycleScope
 import com.phoenix.tech.foodapp.data.local.AppDb
 import com.phoenix.tech.foodapp.data.repository.CartRepository
 import com.phoenix.tech.foodapp.data.repository.SessionManager
-import com.phoenix.tech.foodapp.navigation.AuthGraph
-import com.phoenix.tech.foodapp.navigation.MainAppGraph
+import com.phoenix.tech.foodapp.navigation.AuthGraphRoute
+import com.phoenix.tech.foodapp.navigation.MainAppGraphRoute
 import com.phoenix.tech.foodapp.navigation.RootNavigation
 import com.phoenix.tech.foodapp.ui.theme.AppTheme
 import kotlinx.coroutines.flow.firstOrNull
@@ -37,7 +37,7 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             // Check for existing token and dynamically set start-dest
             val token = sessionManager.authToken.firstOrNull()
-            startDestination = if (!token.isNullOrEmpty()) MainAppGraph else AuthGraph
+            startDestination = if (!token.isNullOrEmpty()) MainAppGraphRoute else AuthGraphRoute
         }
 
         setContent {
