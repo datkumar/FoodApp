@@ -37,11 +37,12 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.phoenix.tech.foodapp.R
 import com.phoenix.tech.foodapp.data.model.RestoListingItemData
+import com.phoenix.tech.foodapp.utils.RESTO_IMG_BASE_URL
 import com.phoenix.tech.foodapp.utils.RestoSharedElemAnimateKeys
 
 
 fun getRestoImgFullUrl(imgId: String): String {
-    return "https://media-assets.swiggy.com/swiggy/image/upload/fl_lossy,f_auto,q_auto,w_660/$imgId"
+    return "$RESTO_IMG_BASE_URL/$imgId"
 }
 
 private const val cardHeight = 170
