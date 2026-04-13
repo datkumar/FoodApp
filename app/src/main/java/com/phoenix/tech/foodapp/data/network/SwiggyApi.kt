@@ -3,6 +3,7 @@ package com.phoenix.tech.foodapp.data.network
 import com.phoenix.tech.foodapp.data.model.RestoDetailsResponse
 import com.phoenix.tech.foodapp.data.model.RestoListResponse
 import com.phoenix.tech.foodapp.data.model.RestoListUpdateRequest
+import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -21,7 +22,7 @@ interface SwiggyApi {
     @POST("dapi/restaurants/list/update")
     suspend fun updateRestaurantsList(
         @Body request: RestoListUpdateRequest
-    ): RestoListResponse
+    ): Response<RestoListResponse>
 
     @GET("mapi/menu/pl")
     suspend fun fetchRestaurantDetails(
@@ -32,23 +33,3 @@ interface SwiggyApi {
         @Query("complete-menu") complete: Boolean = true
     ): RestoDetailsResponse
 }
-
-/*
-  SWIGGY API Endpoints:
-
-Restaurants Listing:
-    https://www.swiggy.com/dapi/restaurants/list/v5?lat=18.5912716&lng=73.73890899999999&is-seo-homepage-enabled=true&page_type=DESKTOP_WEB_LISTING
-
-    https://www.swiggy.com/dapi/menu/pl?page-type=REGULAR_MENU&complete-menu=true&lat=18.5912716&lng=73.73890899999999&restaurantId=3417&catalog_qa=undefined&submitAction=ENTER
-
-    https://www.swiggy.com/dapi/restaurants/list/v5?lat=18.5912716&lng=73.7389089&is-seo-homepage-enabled=true&page_type=DESKTOP_WEB_LISTING
-
-Restaurant Categorized Menu:
-    https://www.swiggy.com/mapi/menu/pl?page-type=REGULAR_MENU&complete-menu=true&lat=18.5912716&lng=73.73890899999999&restaurantId=211120&submitAction=ENTER
-
-
-    https://www.swiggy.com/mapi/menu/pl?page-type=REGULAR_MENU&complete-menu=true&lat=18.5912716&lng=73.73890899999999&restaurantId=4872&submitAction=ENTER
-
-//4872
-
-*/

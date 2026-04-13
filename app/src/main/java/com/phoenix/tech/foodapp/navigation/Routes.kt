@@ -14,12 +14,16 @@ import kotlinx.serialization.Serializable
 @Serializable object HomeTabRoute
 @Serializable object ProfileTabRoute
 @Serializable object SettingsTabRoute
+@Serializable object PokeTabRoute
 
-// Leaf Destination Routes
+/*
+ *  Leaf Destination Routes:
+ */
 @Serializable object HomeRoute
 @Serializable object ProfileRoute
 @Serializable object AppSettingsRoute
 @Serializable object CartRoute
+@Serializable object PokeListingRoute
 
 @Serializable
 data class RestaurantDetailsRoute(
@@ -33,3 +37,8 @@ data class RestaurantDetailsRoute(
     val cuisines: String = "N/A"
 )
 
+@Serializable
+data class PokemonDetailsRoute(
+    val id: Int,
+    val name: String,
+)

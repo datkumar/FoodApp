@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.phoenix.tech.foodapp.data.local.entities.CartItemEntity
 import com.phoenix.tech.foodapp.data.local.entities.RestaurantEntity
-import com.phoenix.tech.foodapp.utils.AppConstants
+import com.phoenix.tech.foodapp.utils.AppKeys
 
 @Database(
     entities = [RestaurantEntity::class, CartItemEntity::class],
@@ -26,7 +26,7 @@ abstract class AppDb : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDb::class.java,
-                    AppConstants.DB_NAME
+                    AppKeys.DB_NAME
                 ).build()
                 INSTANCE = instance
                 instance

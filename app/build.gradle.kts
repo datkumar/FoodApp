@@ -18,12 +18,6 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-//        // Load secrets stored in local.properties
-//        val geoApiKey: String = project.findProperty("GEO_API_KEY") as String? ?: ""
-//        val authBaseUrl: String = project.findProperty("AUTH_BASE_URL") as String? ?: ""
-//        buildConfigField("String", "GEO_API_KEY", "\"$geoApiKey\"")
-//        buildConfigField("String", "AUTH_BASE_URL", "\"$authBaseUrl\"")
     }
 
     sourceSets {
@@ -57,7 +51,7 @@ android {
 
 secrets {
     propertiesFileName = "secrets.properties"
-    
+
     // Optional: If you want to keep some keys in local.properties too,
     // the plugin will merge them.
     defaultPropertiesFileName = "local.properties"

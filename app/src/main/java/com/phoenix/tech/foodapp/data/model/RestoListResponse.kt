@@ -9,7 +9,8 @@ import kotlinx.serialization.Serializable
 // data.cards[1].card.card.gridElements.infoWithStyle.info.restaurants  => ~20 items
 // data.cards[4].card.card.gridElements.infoWithStyle.info.restaurants  => ~8 items
 
-@Serializable data class RestoListResponse(
+@Serializable
+data class RestoListResponse(
     val data: RestoListDataContent,
     val csrfToken: String? = null // used for pagination
 )
@@ -49,7 +50,7 @@ data class RestoListingItem(
     val cta: RestoListingItemCta? = null // for click handling
 )
 
-// Request body for fetching next "/update" list items
+// Request body for fetching "/update" i.e. next restaurant items in pagination
 @Serializable
 data class RestoListUpdateRequest(
     val lat: Double,

@@ -10,6 +10,7 @@ import com.phoenix.tech.foodapp.data.model.UserLocation
 import com.phoenix.tech.foodapp.data.repository.RestoListRepository
 import com.phoenix.tech.foodapp.data.repository.SessionManager
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class HomeViewModelFactory(
     private val sessionManager: SessionManager,
@@ -52,10 +54,14 @@ class HomeViewModel(
     // manual refresh from a re-emission of the same timestamp after resubscription.
     private var lastHandledRefresh = refreshTrigger.value
 
+    // This holds a "manual" override state that loadMoreRestaurants() writes to.
+    // null means "no override — use whatever the base flow produces".
+    private val _uiStateOverride = MutableStateFlow<HomeUiState?>(null)
+
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @OptIn(ExperimentalCoroutinesApi::class, ExperimentalStdlibApi::class)
-    val uiState: StateFlow<HomeUiState> = combine(
+    val baseUiState: Flow<HomeUiState> = combine(
         // Only re-emit when lat/lng actually changes, not on every DataStore write
         // (e.g. when we patch the name via updateLocationNameFromSwiggy)
         sessionManager.userLocation.distinctUntilChanged { old, new ->
@@ -66,7 +72,6 @@ class HomeViewModel(
     ) { location, timestamp, isResolving ->
         Triple(location, timestamp, isResolving)
     }.flatMapLatest { (location, timestamp, isResolving) ->
-
         when {
             // Still waiting for startup permission/GPS resolution to finish —
             // hold at Loading so we don't fetch with stale coords
@@ -106,23 +111,62 @@ class HomeViewModel(
                         HomeVMTag,
                         "uiState: skipping fetch — location and trigger unchanged"
                     )
-                    flowOf(uiState.value)
+//                    flowOf(uiState.value)
+                    flowOf(HomeUiState.Loading) // will be immediately overridden by _uiStateOverride
                 }
             }
         }
+    }
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    val uiState: StateFlow<HomeUiState> = combine(
+        baseUiState,
+        _uiStateOverride
+    ) { base, override ->
+        // If loadMoreRestaurants() has written something, show that.
+        // Else, fall through to whatever the base flow produced.
+        override ?: base
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = HomeUiState.Loading
     )
 
+
     fun refreshRestaurants() {
+        _uiStateOverride.value = null  // wipe any leftover pagination state
         refreshTrigger.value = System.currentTimeMillis()
+    }
+
+
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    fun loadMoreRestaurants() {
+        val currentState = uiState.value
+
+        // Only proceed if we're in a Success state with more pages available
+        if (currentState !is HomeUiState.Success) return
+        if (currentState.isLoadingMore || !currentState.hasMore) return
+
+        val location = lastFetchedLocation ?: return
+
+        viewModelScope.launch {
+            // Show a spinner at the bottom of the list while fetching
+            _uiStateOverride.value = currentState.copy(isLoadingMore = true)
+
+            repository.loadNextPage(location.latitude, location.longitude)
+
+            // Update the state with the full accumulated list
+            _uiStateOverride.value = HomeUiState.Success(
+                restoListingItems = repository.cachedRestaurantListing.toList(),
+                isLoadingMore = false,
+                hasMore = repository.hasMore
+            )
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private fun fetchRestaurantsFlow(location: UserLocation) = flow {
+        _uiStateOverride.value = null  // fresh fetch — clear any override from previous pagination
         emit(HomeUiState.Loading)
         try {
             val data = repository.getHomeRestaurants(
@@ -143,8 +187,13 @@ class HomeViewModel(
                     "fetchRestaurantsFlow: manual location — keeping name '${location.name}'"
                 )
             }
-
-            emit(HomeUiState.Success(data))
+            emit(
+                HomeUiState.Success(
+                    restoListingItems = data,
+                    isLoadingMore = false,
+                    hasMore = repository.hasMore
+                )
+            )
 
         } catch (e: Exception) {
             Log.e(HomeVMTag, "fetchRestaurantsFlow: network error", e)

@@ -8,22 +8,29 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,6 +43,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.phoenix.tech.foodapp.R
+import com.phoenix.tech.foodapp.ui.components.ErrorPage
+import com.phoenix.tech.foodapp.ui.components.NotFoundPage
 import com.phoenix.tech.foodapp.ui.components.RestaurantCard
 import com.phoenix.tech.foodapp.ui.state.HomeUiState
 import com.phoenix.tech.foodapp.ui.state.HomeViewModel
@@ -118,30 +127,43 @@ fun HomeScreen(
 
             is HomeUiState.Success -> {
                 if (state.restoListingItems.isEmpty()) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Image(
-                            painter = painterResource(R.drawable.error_msg),
-                            contentDescription = "Error illustration",
-                            modifier = Modifier.height(200.dp),
-                            contentScale = ContentScale.FillHeight,
-                        )
-                        Spacer(Modifier.height(10.dp))
-                        Text(
-                            "Oops! No restaurants found at this location",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
+                    NotFoundPage(msg = "Oops! No restaurants found at this location")
                 } else {
+                    // LazyVerticalGrid needs an explicit state object so we can
+                    // read scroll position. Without this we have no way to know
+                    // how far the user has scrolled.
+                    val listState = rememberLazyGridState()
+
+                    // derivedStateOf watches the scroll position and
+                    // flips to true when the last visible item is within 3 of
+                    // the end of the list. derivedStateOf is used here (instead
+                    // of reading listState directly) so that recomposition only
+                    // triggers when the boolean result actually flips, not on
+                    // every single scroll pixel.
+                    val shouldLoadMore by remember {
+                        derivedStateOf {
+                            val lastVisible =
+                                listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                            val total = listState.layoutInfo.totalItemsCount
+                            total > 0 && lastVisible >= total - 3
+                        }
+                    }
+
+                    // LaunchedEffect runs a side-effect tied to the
+                    // value of shouldLoadMore. Whenever shouldLoadMore flips to
+                    // true (user scrolled near the end) it calls loadMoreRestaurants().
+                    // When shouldLoadMore flips back to false (new items pushed
+                    // the end further away) nothing happens.
+                    LaunchedEffect(shouldLoadMore) {
+                        if (shouldLoadMore) viewModel.loadMoreRestaurants()
+                    }
+
                     LazyVerticalGrid(
+                        state = listState,
                         columns = GridCells.Fixed(1),
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(gridPadding.dp),
-
-                        ) {
+                        contentPadding = PaddingValues(gridPadding.dp)
+                    ) {
                         items(state.restoListingItems) { restaurant ->
                             RestaurantCard(
                                 restaurant = restaurant.info,
@@ -163,29 +185,30 @@ fun HomeScreen(
                             )
                             Spacer(Modifier.height(5.dp))
                         }
+                        // An extra item at the bottom of the grid
+                        // that only appears while isLoadingMore is true.
+                        // GridItemSpan(maxLineSpan) makes it stretch the full
+                        // width instead of fitting into one column cell.
+                        if (state.isLoadingMore) {
+                            item(
+                                span = { GridItemSpan(maxLineSpan) }
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularWavyProgressIndicator()
+                                }
+                            }
+                        }
                     }
                 }
             }
 
             is HomeUiState.Error -> {
-                // TODO: Error UI here
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Image(
-                        painter = painterResource(R.drawable.error_msg),
-                        contentDescription = "Error illustration",
-                        modifier = Modifier.height(200.dp),
-                        contentScale = ContentScale.FillHeight,
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        "An error occurred while fetching restaurants",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
+                ErrorPage(msg = "An error occurred while fetching restaurants")
             }
         }
     }

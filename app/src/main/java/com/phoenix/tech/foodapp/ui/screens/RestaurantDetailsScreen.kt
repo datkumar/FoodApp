@@ -53,9 +53,9 @@ import com.phoenix.tech.foodapp.data.repository.CartRepository
 import com.phoenix.tech.foodapp.data.repository.SessionManager
 import com.phoenix.tech.foodapp.ui.components.FoodItemRow
 import com.phoenix.tech.foodapp.ui.components.RestaurantInfoHeader
-import com.phoenix.tech.foodapp.ui.state.CartViewModelFactory
 import com.phoenix.tech.foodapp.ui.state.RestoDetailsUiState
 import com.phoenix.tech.foodapp.ui.state.RestoDetailsViewModel
+import com.phoenix.tech.foodapp.ui.state.RestoDetailsViewModelFactory
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -71,7 +71,7 @@ fun RestaurantDetailsScreen(
 ) {
     // Create the factory
     val factory = remember(cartRepository, sessionManager) {
-        CartViewModelFactory(cartRepository, sessionManager)
+        RestoDetailsViewModelFactory(cartRepository, sessionManager)
     }
     // Pass the factory to the viewModel() function
     val viewModel: RestoDetailsViewModel = viewModel(factory = factory)
@@ -93,7 +93,7 @@ fun RestaurantDetailsScreen(
             totalRatingsString = totalRatingsString,
             slaTime = slaTime,
             slaDist = slaDist,
-            cuisines= cuisines,
+            cuisines = cuisines,
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope
         )

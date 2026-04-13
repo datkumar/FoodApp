@@ -58,6 +58,8 @@ import com.phoenix.tech.foodapp.ui.components.CustomTopBar
 import com.phoenix.tech.foodapp.ui.components.LocationSelectionSheet
 import com.phoenix.tech.foodapp.ui.screens.CartScreen
 import com.phoenix.tech.foodapp.ui.screens.HomeScreen
+import com.phoenix.tech.foodapp.ui.screens.PokemonDetailsScreen
+import com.phoenix.tech.foodapp.ui.screens.PokemonListingScreen
 import com.phoenix.tech.foodapp.ui.screens.ProfileScreen
 import com.phoenix.tech.foodapp.ui.screens.RestaurantDetailsScreen
 import com.phoenix.tech.foodapp.ui.screens.SettingsScreen
@@ -112,7 +114,7 @@ fun MainAppLayout(
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { perms ->
-        Log.d(MainLayoutPermsTag, "INSIDE Permission Launcher")
+        Log.d(MainLayoutPermsTag, "INSI=DE Permission Launcher")
 
         // ---- Location ----
         val locationWasRequested = perms.containsKey(Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -286,7 +288,8 @@ fun MainAppLayout(
         // Check if the current destination is any of our "Root" tab screens
         return currDestination.hasRoute(HomeRoute::class) ||
                 currDestination.hasRoute(ProfileRoute::class) ||
-                currDestination.hasRoute(AppSettingsRoute::class)
+                currDestination.hasRoute(AppSettingsRoute::class) ||
+                currDestination.hasRoute(PokeListingRoute::class)
     }
 
     fun navigateToTab(route: Any) {
@@ -309,6 +312,12 @@ fun MainAppLayout(
                 args?.restoName ?: "Restaurant Info"
             }
 
+            currDestination?.hasRoute(PokeListingRoute::class) == true -> "Pokemons"
+            currDestination?.hasRoute(PokemonDetailsRoute::class) == true -> {
+                val args = currBackStackState?.toRoute<PokemonDetailsRoute>()
+                args?.name ?: "Pokemon Info"
+            }
+
             currDestination?.hasRoute(CartRoute::class) == true -> "My Cart"
             currDestination?.hasRoute(ProfileRoute::class) == true -> "My Profile"
             currDestination?.hasRoute(AppSettingsRoute::class) == true -> "Settings"
@@ -327,9 +336,13 @@ fun MainAppLayout(
             val navItems = listOf(
                 Triple(HomeTabRoute, "Home", painterResource(R.drawable.ic_home)),
                 Triple(ProfileTabRoute, "Profile", painterResource(R.drawable.ic_user)),
-                Triple(SettingsTabRoute, "Settings", painterResource(R.drawable.ic_settings))
+                Triple(SettingsTabRoute, "Settings", painterResource(R.drawable.ic_settings)),
+                Triple(PokeTabRoute, "Pokemon", painterResource(R.drawable.ic_pokeball))
             )
-            val tabStartDestinations = listOf(HomeRoute, ProfileTabRoute, SettingsTabRoute)
+            val tabStartDestinations = listOf(
+                HomeRoute, ProfileTabRoute, SettingsTabRoute,
+                PokeListingRoute
+            )
 
             navItems.forEachIndexed { index, (tab, label, icon) ->
                 val isSelected = currDestination?.hierarchy?.any { it.hasRoute(tab::class) } == true
@@ -482,6 +495,23 @@ fun MainAppLayout(
                 navigation<SettingsTabRoute>(startDestination = AppSettingsRoute) {
                     composable<AppSettingsRoute> { SettingsScreen() }
                 }
+                // POKEMON-TAB branch
+                navigation<PokeTabRoute>(startDestination = PokeListingRoute) {
+                    // Pokemon Listing screen
+                    composable<PokeListingRoute> {
+                        PokemonListingScreen(
+                            onPokeCardClick = { id: Int, name: String ->
+                                mainAppNavCtl.navigate(PokemonDetailsRoute(id, name))
+                            }
+                        )
+                    }
+                    // Pokemon Details screen
+                    composable<PokemonDetailsRoute> { backStackEntry ->
+                        val args: PokemonDetailsRoute = backStackEntry.toRoute()
+                        PokemonDetailsScreen(args.id, args.name)
+                    }
+                }
+
                 // CART page (Independent leaf)
                 composable<CartRoute> {
                     CartScreen(

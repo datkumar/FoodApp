@@ -24,15 +24,15 @@ val NunitoVariable = FontFamily(
     )
 )
 
-@OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
-val NunitoItalicVariable = FontFamily(
-    Font(
-        resId = R.font.nunito_sans_italic_variable,
-        variationSettings = FontVariation.Settings(
-            FontVariation.weight(400)
-        )
-    )
-)
+//@OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
+//val NunitoItalicVariable = FontFamily(
+//    Font(
+//        resId = R.font.nunito_sans_italic_variable,
+//        variationSettings = FontVariation.Settings(
+//            FontVariation.weight(400)
+//        )
+//    )
+//)
 
 val AppTypography = Typography(
     // 1. HERO TITLES (Recipe Names, Featured Restaurant)
