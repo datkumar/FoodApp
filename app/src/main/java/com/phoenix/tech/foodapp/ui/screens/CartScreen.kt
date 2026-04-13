@@ -14,11 +14,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -220,33 +218,33 @@ fun CartItemRow(
     }
 }
 
-@Composable
-fun CheckoutBottomBar(total: Long) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shadowElevation = 8.dp,
-        color = MaterialTheme.colorScheme.surface
-    ) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text("Total to Pay", style = MaterialTheme.typography.labelMedium)
-                Text(
-                    "₹$total",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.ExtraBold
-                )
-            }
-            Button(
-                onClick = { /* Implement Payment Logic */ },
-                modifier = Modifier.height(48.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("PROCEED TO PAY")
-            }
-        }
-    }
-}
+//@Composable
+//fun CheckoutBottomBar(total: Long) {
+//    Surface(
+//        modifier = Modifier.fillMaxWidth(),
+//        shadowElevation = 8.dp,
+//        color = MaterialTheme.colorScheme.surface
+//    ) {
+//        Row(
+//            modifier = Modifier.padding(20.dp),
+//            horizontalArrangement = Arrangement.SpaceBetween,
+//            verticalAlignment = Alignment.CenterVertically
+//        ) {
+//            Column {
+//                Text("Total to Pay", style = MaterialTheme.typography.labelMedium)
+//                Text(
+//                    "₹$total",
+//                    style = MaterialTheme.typography.titleLarge,
+//                    fontWeight = FontWeight.ExtraBold
+//                )
+//            }
+//            Button(
+//                onClick = { /* Implement Payment Logic */ },
+//                modifier = Modifier.height(48.dp),
+//                shape = RoundedCornerShape(12.dp)
+//            ) {
+//                Text("PROCEED TO PAY")
+//            }
+//        }
+//    }
+//}

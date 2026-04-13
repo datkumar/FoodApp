@@ -55,14 +55,15 @@ class PokemonListViewModel(
 
     fun loadPokemon(isRefresh: Boolean = false) {
         viewModelScope.launch {
-
             if (isRefresh) {
                 _isRefreshing.value = true
             } else {
                 _isPaginating.value = true
             }
 
-            val newList = repository.getPokemonList(forceRefresh = isRefresh)
+            val newList = repository.getPokemonList(
+                forceRefresh = isRefresh
+            )
             _uiState.value = newList
 
             _isRefreshing.value = false

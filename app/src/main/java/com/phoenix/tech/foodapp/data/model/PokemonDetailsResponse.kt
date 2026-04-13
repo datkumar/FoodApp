@@ -64,19 +64,19 @@ data class Sprites(
 //    val versions: Versions? = null,
 )
 
-@Serializable
-data class DreamWorld(
-    @SerialName("front_default") val frontDefault: String,
-    @SerialName("front_female") val frontFemale: String? = null
-)
-
-@Serializable
-data class Home(
-    @SerialName("front_default") val frontDefault: String,
-    @SerialName("front_female") val frontFemale: String,
-    @SerialName("front_shiny") val frontShiny: String,
-    @SerialName("front_shiny_female") val frontShinyFemale: String
-)
+//@Serializable
+//data class DreamWorld(
+//    @SerialName("front_default") val frontDefault: String,
+//    @SerialName("front_female") val frontFemale: String? = null
+//)
+//
+//@Serializable
+//data class Home(
+//    @SerialName("front_default") val frontDefault: String,
+//    @SerialName("front_female") val frontFemale: String,
+//    @SerialName("front_shiny") val frontShiny: String,
+//    @SerialName("front_shiny_female") val frontShinyFemale: String
+//)
 
 @Serializable
 data class Ability(
@@ -95,11 +95,11 @@ data class Ability(
 //)
 
 
-@Serializable
-data class OfficialArtwork(
-    @SerialName("front_default") val frontDefault: String,
-    @SerialName("front_shiny") val frontShiny: String
-)
+//@Serializable
+//data class OfficialArtwork(
+//    @SerialName("front_default") val frontDefault: String,
+//    @SerialName("front_shiny") val frontShiny: String
+//)
 
 @Serializable
 data class Stat(

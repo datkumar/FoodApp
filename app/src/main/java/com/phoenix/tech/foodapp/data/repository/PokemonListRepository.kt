@@ -9,8 +9,7 @@ import com.phoenix.tech.foodapp.utils.POKE_IMG_BASE_URL
 class PokemonListRepository(
     private val api: PokeApi = HttpClient.pokeApi
 ) {
-    private val _cachedPokemonList = mutableListOf<PokemonListItem>()
-    val cachedPokemonList: List<PokemonListItem> get() = _cachedPokemonList
+    private val cachedPokemonList = mutableListOf<PokemonListItem>()
 
     // Pagination cursors
     private var currentOffset = 0
@@ -21,15 +20,19 @@ class PokemonListRepository(
     suspend fun getPokemonList(forceRefresh: Boolean = false): List<PokemonListItem> {
         if (forceRefresh) {
             currentOffset = 0
-            _cachedPokemonList.clear()
+            cachedPokemonList.clear()
             hasMore = true
         }
-
         try {
-            val response = api.fetchPokemonList(limit = limit, offset = currentOffset)
-            val mappedItems = response.results.map { entry: PokemonListItemDto ->
+            val response = api.fetchPokemonList(
+                limit = limit,
+                offset = currentOffset
+            )
+
+            val mappedPokemons = response.results.map { entry: PokemonListItemDto ->
                 // Extract ID from Details URL (https://pokeapi.co/api/v2/pokemon/51/ -> 51)
                 val id = entry.url.split("/").last { it.isNotEmpty() }.toInt()
+
                 // Construct Pokemon List-Item
                 PokemonListItem(
                     id = id,
@@ -39,14 +42,18 @@ class PokemonListRepository(
                     imgUrl = "$POKE_IMG_BASE_URL$id.png"
                 )
             }
+            cachedPokemonList.addAll(mappedPokemons)
 
-            _cachedPokemonList.addAll(mappedItems)
-            // Move cursor ahead by current "limit" value count
+            // Move cursor ahead by current "limit" amount
             currentOffset += limit
-            hasMore = mappedItems.size == limit
 
-            return _cachedPokemonList.toList()
-        } catch (e: Exception) {
+            // If full "limit" amount of pokemons were received in current call,
+            // there are more pokemons ahead
+            hasMore = (mappedPokemons.size == limit)
+
+            return cachedPokemonList.toList()
+
+        } catch (_: Exception) {
             return emptyList()
         }
     }

@@ -229,10 +229,10 @@ fun RatingFractionalStar(
 }
 
 
-@Composable
-private fun CardBottomContent(restaurant: RestoListingItemData) {
-
-}
+//@Composable
+//private fun CardBottomContent(restaurant: RestoListingItemData) {
+//
+//}
 
 
 //@Preview(showBackground = false)

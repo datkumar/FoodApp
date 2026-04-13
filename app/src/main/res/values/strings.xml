@@ -1,4 +1,3 @@
 <resources>
     <string name="app_name">Zwiggy</string>
-    <string name="swiggy_baseurl">https://www.swiggy.com/</string>
 </resources>

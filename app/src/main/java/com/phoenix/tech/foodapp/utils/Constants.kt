@@ -10,7 +10,7 @@ object AppKeys {
     const val LOC_IS_AUTO = "loc_is_auto"
 }
 
-class RestoSharedElemAnimateKeys(private val restoId: String) {
+class RestoSharedElemAnimateKeys(restoId: String) {
     val restoName = "restoName-$restoId"
     val img = "restoImg-$restoId"
     val rating = "rating-$restoId"

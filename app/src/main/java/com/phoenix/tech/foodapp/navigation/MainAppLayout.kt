@@ -114,7 +114,7 @@ fun MainAppLayout(
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { perms ->
-        Log.d(MainLayoutPermsTag, "INSIDE Permission Launcher")
+        Log.d(MainLayoutPermsTag, "INSI=DE Permission Launcher")
 
         // ---- Location ----
         val locationWasRequested = perms.containsKey(Manifest.permission.ACCESS_COARSE_LOCATION)

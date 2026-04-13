@@ -69,10 +69,4 @@ class SessionManager(context: Context) {
             prefs[_keys.locIsAuto] = loc.isAutoDetected
         }
     }
-
-
-    suspend fun clearLocation() {
-        _dataStore.edit { it.remove(_keys.locName) }
-    }
-
 }

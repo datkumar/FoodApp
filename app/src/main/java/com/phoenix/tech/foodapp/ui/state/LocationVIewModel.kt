@@ -37,7 +37,7 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.roundToInt
 
-val LocationVMTag = "LOCATION_VM"
+private const val LocationVMTag = "LOCATION_VM"
 
 
 class LocationViewModelFactory(
@@ -335,73 +335,4 @@ sealed class LocationResult {
         _isResolvingLocation.value = false
     }
 
-
-    /**
-     * Checks if the current saved location is the "Pune Fallback".
-     * We use this to determine if we should try to replace it with real GPS data.
-     */
-    fun isAtFallback(location: UserLocation?): Boolean {
-        if (location == null) {
-            return true
-        }
-        val fallback = getPuneFallback()
-        return (location.latitude == fallback.latitude &&
-                location.longitude == fallback.longitude)
-    }
-
-
-    /**
-     * Determines if we should attempt an auto-refresh.
-     * We only auto-refresh if:
-     * 1. The current location is null or the Pune Fallback.
-     * 2. OR the current location was previously auto-detected (and might be stale).
-     */
-    fun shouldAutoUpdateLoc(currentLoc: UserLocation?): Boolean {
-        return isAtFallback(currentLoc) || currentLoc?.isAutoDetected == true
-    }
-
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    @SuppressLint("MissingPermission")
-    private suspend fun detectLocationAndFetchDetails(): UserLocation? {
-        try {
-            // Create a token that we can use for this specific one-shot request
-            val cts = CancellationTokenSource()
-            // Fetch current latest location (with 5s timeout)
-            val currLoc = withTimeoutOrNull(5000) {
-                fusedLocationClient.getCurrentLocation(
-                    Priority.PRIORITY_HIGH_ACCURACY,
-                    cts.token
-                ).await()
-            }
-            // Fallback to cached if fresh failed
-            val cachedLoc = fusedLocationClient.lastLocation.await()
-
-            // Pick the best available: Fresh > Cached > Null
-            val finalLoc = currLoc ?: cachedLoc ?: return null
-            Log.d(LocationVMTag, "CURRENT LOCATION: $currLoc")
-            Log.d(LocationVMTag, "CACHED LOCATION:  $cachedLoc")
-            // Safe logging for debugging
-            val age = cachedLoc?.let {
-                (it.elapsedRealtimeAgeMillis / 1000.0).roundToInt()
-            } ?: "N/A"
-            Log.d(
-                LocationVMTag,
-                "Using location which is Fresh: ${currLoc != null}, Cached Age: $age sec"
-            )
-            val response = geoApi.searchByCoordinates(
-                lat = finalLoc.latitude,
-                lon = finalLoc.longitude
-            )
-            val locName = response.results.firstOrNull()?.formattedName ?: "Current Location"
-            return UserLocation(
-                name = locName,
-                latitude = finalLoc.latitude,
-                longitude = finalLoc.longitude,
-                isAutoDetected = true
-            )
-        } catch (e: Exception) {
-            Log.e(LocationVMTag, "Detection failed", e)
-            return null
-        }
-    }
 }
