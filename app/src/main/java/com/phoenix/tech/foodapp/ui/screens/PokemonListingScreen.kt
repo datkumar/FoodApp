@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -22,8 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -32,6 +29,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
 import com.phoenix.tech.foodapp.data.repository.PokemonListRepository
 import com.phoenix.tech.foodapp.ui.components.PokemonListingCard
 import com.phoenix.tech.foodapp.ui.state.PokemonListViewModel
@@ -46,72 +46,58 @@ fun PokemonListingScreen(
     ),
     onPokeCardClick: (id: Int, name: String) -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val isRefreshing by viewModel.isRefreshing.collectAsState()
-    val isPaginating by viewModel.isPaginating.collectAsState()
-
+    // Collect Paging State
+    val pagingItems = viewModel.pokemonPagingFlow.collectAsLazyPagingItems()
     // To keep track of how far down we've scrolled
     val gridState = rememberLazyGridState()
-
-    val scope = rememberCoroutineScope()
-
-    // Infinite Scroll Logic: Detect if we've scrolled near the end
-    val shouldLoadMore = remember {
-        derivedStateOf {
-            val lastVisibleItem = gridState.layoutInfo.visibleItemsInfo.lastOrNull()
-
-            // Trigger load when 4 items away from the bottom
-            (lastVisibleItem != null) &&
-                    (lastVisibleItem.index >= gridState.layoutInfo.totalItemsCount - 4)
-        }
-    }
-
     // Determine if we should show the "Scroll to Top" button
     val showScrollToTop by remember {
-        derivedStateOf { gridState.firstVisibleItemIndex > 6 }
+        derivedStateOf { gridState.firstVisibleItemIndex > 12 }
     }
+    //
+    val scope = rememberCoroutineScope()
 
-    LaunchedEffect(shouldLoadMore.value) {
-        if (shouldLoadMore.value && !isPaginating && !isRefreshing) {
-            viewModel.loadPokemon(isRefresh = false)
-        }
-    }
 
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
         PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = { viewModel.loadPokemon(isRefresh = true) },
+            isRefreshing = pagingItems.loadState.refresh is LoadState.Loading,
+            onRefresh = { pagingItems.refresh() },
             modifier = Modifier.fillMaxSize()
         ) {
             LazyVerticalGrid(
                 state = gridState,
-                columns = GridCells.Fixed(2), // 2 items per row
+                columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(8.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
+                // Loaded pokemon entries
                 items(
-                    items = uiState,
-                    key = { it.id } // Performance optimization
-                ) { pokemon ->
-                    PokemonListingCard(
-                        pokemon = pokemon,
-                        onClick = { onPokeCardClick(pokemon.id, pokemon.name) }
-                    )
+                    count = pagingItems.itemCount,
+                    key = pagingItems.itemKey { it.id }
+                ) { index ->
+                    pagingItems[index]?.let { pokemon ->
+                        PokemonListingCard(
+                            pokemon = pokemon,
+                            onClick = { onPokeCardClick(pokemon.id, pokemon.name) }
+                        )
+                    }
                 }
 
-                // Show a loading spinner at the bottom when paginating
-                if (isPaginating) {
+                // Append loading (pagination) spinner
+                if (pagingItems.loadState.append is LoadState.Loading) {
                     item(
                         span = { GridItemSpan(2) }
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(15.dp)
+                                .padding(16.dp)
                         ) {
-                            CircularWavyProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                            CircularWavyProgressIndicator(
+                                Modifier.align(Alignment.Center)
+                            )
                         }
                     }
                 }
