@@ -19,22 +19,16 @@ class PokemonPagingSource(
 
     override fun getRefreshKey(
         state: PagingState<Int, PokemonListItem>
-    ): Int? {
-        // This ensures that when you pull to refresh,
-        // it tries to find the position you were looking at
-        // or just starts from the beginning (0)
-        return state.anchorPosition
-            ?.let { anchorPosition ->
-                val anchorPage = state.closestPageToPosition(anchorPosition)
-                anchorPage?.prevKey?.plus(state.config.pageSize)
-                    ?: anchorPage?.nextKey?.minus(state.config.pageSize)
-            }
+    ): Int {
+        // ALWAYS return 0 to force every refresh to start from the first Pokemon
+        return 0
     }
 
     override suspend fun load(
         params: LoadParams<Int>
     ): LoadResult<Int, PokemonListItem> {
         try {
+            // params.key is null on the very first load OR after a manual refresh
             val offset = params.key ?: 0
             val response = api.fetchPokemonList(limit = params.loadSize, offset = offset)
 
@@ -42,8 +36,9 @@ class PokemonPagingSource(
             val mappedPokemons = response.results.mapNotNull { entry ->
                 // Extract ID from Details URL
                 val id = entry.url.split("/").filter { it.isNotEmpty() }.last().toInt()
-                // As we only want standard Pokemons, skip IDs > 10000
-                if (id > 10000) return@mapNotNull null
+
+                // Ignore the "Special Forms" IDs like 10025
+                if (id > 1025) return@mapNotNull null
 
                 PokemonListItem(
                     id = id,
@@ -53,8 +48,9 @@ class PokemonPagingSource(
             }
             return LoadResult.Page(
                 data = mappedPokemons,
-                prevKey = if (offset == 0) null else offset - params.loadSize,
-                nextKey = if (mappedPokemons.isEmpty() || offset >= 1025) null else offset + params.loadSize
+                prevKey = null, // ensures the user can NEVER scroll "up" to load more
+                // Stop loading once we reach the end
+                nextKey = if (mappedPokemons.isEmpty() || offset >= 1020) null else offset + params.loadSize
             )
 
         } catch (e: Exception) {

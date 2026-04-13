@@ -20,6 +20,7 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -27,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.LoadState
@@ -46,31 +48,48 @@ fun PokemonListingScreen(
     ),
     onPokeCardClick: (id: Int, name: String) -> Unit
 ) {
+    val scope = rememberCoroutineScope()
     // Collect Paging State
     val pagingItems = viewModel.pokemonPagingFlow.collectAsLazyPagingItems()
+    // Refresh state
+    val refreshState = rememberPullToRefreshState()
     // To keep track of how far down we've scrolled
     val gridState = rememberLazyGridState()
+
     // Determine if we should show the "Scroll to Top" button
     val showScrollToTop by remember {
         derivedStateOf { gridState.firstVisibleItemIndex > 12 }
     }
-    //
-    val scope = rememberCoroutineScope()
 
+    val isRefreshing = pagingItems.loadState.refresh is LoadState.Loading
 
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
         PullToRefreshBox(
-            isRefreshing = pagingItems.loadState.refresh is LoadState.Loading,
-            onRefresh = { pagingItems.refresh() },
+            state = refreshState,
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                scope.launch {
+                    // Clear the data and start over
+                    pagingItems.refresh()
+                    // Can also wait a tiny bit or wait for the state to change
+                    // Immediately snap the scroll position back to the top
+                    gridState.scrollToItem(0)
+                }
+            },
             modifier = Modifier.fillMaxSize()
         ) {
             LazyVerticalGrid(
                 state = gridState,
                 columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(8.dp),
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        // Dim the list slightly while refreshing to show "work" is happening
+                        alpha = if (isRefreshing) 0.5f else 1.0f
+                    },
             ) {
                 // Loaded pokemon entries
                 items(
