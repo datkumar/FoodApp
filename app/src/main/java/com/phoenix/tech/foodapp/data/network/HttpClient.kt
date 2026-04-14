@@ -1,11 +1,13 @@
 package com.phoenix.tech.foodapp.data.network
 
+import android.content.Context
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.phoenix.tech.foodapp.BuildConfig
 import com.phoenix.tech.foodapp.utils.GEOCODE_BASE_URL
 import com.phoenix.tech.foodapp.utils.POKE_BASE_URL
 import com.phoenix.tech.foodapp.utils.SWIGGY_BASE_URL
 import kotlinx.serialization.json.Json
+import okhttp3.Cache
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -14,6 +16,26 @@ import java.util.concurrent.TimeUnit
 
 
 object HttpClient {
+    private var isInitialized = false
+
+    // We need a way to pass context for the Cache and Interceptor
+    // Ideally, call this once in your Application class or provide via Hilt
+    private lateinit var appContext: Context
+
+    fun initialize(context: Context) {
+        if (!isInitialized) {
+            appContext = context.applicationContext
+            isInitialized = true
+        }
+    }
+
+    private val connectivityInterceptor by lazy { ConnectivityInterceptor(appContext) }
+    private val cache by lazy { getCache(appContext) }
+
+    private fun getCache(context: Context): Cache {
+        val cacheSize = (5 * 1024 * 1024).toLong() // 5 MB
+        return Cache(context.cacheDir, cacheSize)
+    }
 
     private val contentType = "application/json".toMediaType()
     private val json = Json {
@@ -29,56 +51,55 @@ object HttpClient {
 
     private const val AUTH_BASE_URL = BuildConfig.AUTH_BASE_URL
 
-    // --- SWIGGY NETWORK SETUP ---
-    // Keep reference to same instance
-    private val swiggyHeaderInterceptor = SwiggyHeaderInterceptor()
-    private val swiggyClient = OkHttpClient.Builder()
-        .addInterceptor(swiggyHeaderInterceptor)
-        .addInterceptor(loggingInterceptor)
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .build()
-    private val swiggyRetrofit = Retrofit.Builder()
-        .baseUrl(SWIGGY_BASE_URL)
-        .client(swiggyClient)
-        .addConverterFactory(json.asConverterFactory(contentType))
-        .build()
-    val swiggyApi: SwiggyApi = swiggyRetrofit.create(SwiggyApi::class.java)
+    private fun createCommonClientBuilder(timeoutSec: Long): OkHttpClient.Builder {
+        return OkHttpClient.Builder()
+            .addInterceptor(connectivityInterceptor) // Check internet before every call
+            .addInterceptor(loggingInterceptor)
+            .cache(cache) // Enable disk caching
+            .connectTimeout(timeoutSec, TimeUnit.SECONDS)
+    }
 
+    // --- SWIGGY SETUP ---
+    val swiggyApi: SwiggyApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(SWIGGY_BASE_URL)
+            .client(
+                createCommonClientBuilder(30).addInterceptor(
+                    SwiggyHeaderInterceptor()
+                ).build()
+            )
+            .addConverterFactory(json.asConverterFactory(contentType))
+            .build()
+            .create(SwiggyApi::class.java)
+    }
 
-    // --- AUTH NETWORK SETUP ---
-    private val authClient = OkHttpClient.Builder()
-        .addInterceptor(loggingInterceptor)
-        // NO HeaderInterceptor here so we don't spoof Swiggy headers to company servers
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .build()
-    private val authRetrofit = Retrofit.Builder()
-        .baseUrl(AUTH_BASE_URL)
-        .client(authClient)
-        .addConverterFactory(json.asConverterFactory(contentType))
-        .build()
-    val authApi: AuthApi = authRetrofit.create(AuthApi::class.java)
+    // --- AUTH SETUP ---
+    val authApi: AuthApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(AUTH_BASE_URL)
+            .client(createCommonClientBuilder(15).build())
+            .addConverterFactory(json.asConverterFactory(contentType))
+            .build()
+            .create(AuthApi::class.java)
+    }
 
     // --- GEO-CODING SETUP ---
-    private val geoClient = OkHttpClient.Builder()
-        .addInterceptor(loggingInterceptor)
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .build()
-    private val geoRetrofit = Retrofit.Builder()
-        .baseUrl(GEOCODE_BASE_URL)
-        .client(geoClient)
-        .addConverterFactory(json.asConverterFactory(contentType))
-        .build()
-    val geoApi: GeoApi = geoRetrofit.create(GeoApi::class.java)
+    val geoApi: GeoApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(GEOCODE_BASE_URL)
+            .client(createCommonClientBuilder(10).build())
+            .addConverterFactory(json.asConverterFactory(contentType))
+            .build()
+            .create(GeoApi::class.java)
+    }
 
     // --- POKE-API SETUP ---
-    private val pokeClient = OkHttpClient.Builder()
-        .addInterceptor(loggingInterceptor)
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .build()
-    private val pokeRetrofit = Retrofit.Builder()
-        .baseUrl(POKE_BASE_URL)
-        .client(pokeClient)
-        .addConverterFactory(json.asConverterFactory(contentType))
-        .build()
-    val pokeApi: PokeApi = pokeRetrofit.create(PokeApi::class.java)
+    val pokeApi: PokeApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(POKE_BASE_URL)
+            .client(createCommonClientBuilder(10).build())
+            .addConverterFactory(json.asConverterFactory(contentType))
+            .build()
+            .create(PokeApi::class.java)
+    }
 }

@@ -16,6 +16,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,6 +41,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -52,8 +54,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
 import com.phoenix.tech.foodapp.R
+import com.phoenix.tech.foodapp.data.network.NetworkObserver
 import com.phoenix.tech.foodapp.data.repository.CartRepository
 import com.phoenix.tech.foodapp.data.repository.SessionManager
+import com.phoenix.tech.foodapp.ui.components.ConnectivityBanner
 import com.phoenix.tech.foodapp.ui.components.CustomTopBar
 import com.phoenix.tech.foodapp.ui.components.LocationSelectionSheet
 import com.phoenix.tech.foodapp.ui.screens.CartScreen
@@ -87,6 +91,10 @@ fun MainAppLayout(
     // App Context
     val context = LocalContext.current
     val application = context.applicationContext as Application
+
+    // Initialize the Network state observer
+    val networkObserver = remember { NetworkObserver(context) }
+    val isConnected by networkObserver.isConnected.collectAsStateWithLifecycle(initialValue = true)
 
     // Observe Cart State
     val cartItems by cartRepository.allCartItems.collectAsState(initial = emptyList())
@@ -210,7 +218,6 @@ fun MainAppLayout(
         }
     }
 
-
     // -------------------------------------------------------------------------
     // One-shot startup: check permission and either detect or request
     // -------------------------------------------------------------------------
@@ -303,7 +310,6 @@ fun MainAppLayout(
         }
     }
 
-
     fun getTopBarTitle(): String {
         return when {
             currDestination?.hasRoute(RestaurantDetailsRoute::class) == true -> {
@@ -325,7 +331,6 @@ fun MainAppLayout(
             else -> "Zwiggy"
         }
     }
-
 
     @Composable
     fun BottomNavBar() {
@@ -385,194 +390,204 @@ fun MainAppLayout(
         }
     }
 
+    Box() {
+        // ENTIRE PAGE'S LAYOUT
+        SharedTransitionLayout { // For hosting shared-element transition animations
+            Scaffold(
+                topBar = {
+                    // Dynamically set TopBar
+                    CustomTopBar(
+                        title = getTopBarTitle(),
+                        isHomeRoute = currDestination?.hasRoute(HomeRoute::class) == true,
+                        isCartRoute = currDestination?.hasRoute(CartRoute::class) == true,
+                        showBack = !(isTabRoot()),
+                        cartCount = cartCount,
+                        displayedLocation = locationDisplayed,
+                        onBackClick = { mainAppNavCtl.navigateUp() },
+                        onCartClick = { mainAppNavCtl.navigate(CartRoute) },
+                        onLocationClick = { showLocationSelectionSheet = true }
+                    )
+                },
+                bottomBar = { BottomNavBar() }
+            ) { innerPadding ->
 
-    // ENTIRE PAGE'S LAYOUT
-    SharedTransitionLayout { // For hosting shared-element transition animations
-        Scaffold(
-            topBar = {
-                // Dynamically set TopBar
-                CustomTopBar(
-                    title = getTopBarTitle(),
-                    isHomeRoute = currDestination?.hasRoute(HomeRoute::class) == true,
-                    isCartRoute = currDestination?.hasRoute(CartRoute::class) == true,
-                    showBack = !(isTabRoot()),
-                    cartCount = cartCount,
-                    displayedLocation = locationDisplayed,
-                    onBackClick = { mainAppNavCtl.navigateUp() },
-                    onCartClick = { mainAppNavCtl.navigate(CartRoute) },
-                    onLocationClick = { showLocationSelectionSheet = true }
-                )
-            },
-            bottomBar = { BottomNavBar() }
-        ) { innerPadding ->
-            NavHost(
-                navController = mainAppNavCtl,
-                startDestination = HomeTabRoute, // Default tab
-                modifier = Modifier.padding(innerPadding),
-                // Navigation Transition Animations
-                enterTransition = {
-                    slideIntoContainer(
-                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                        animationSpec = tween(300)
-                    )
-                },
-                exitTransition = {
-                    slideOutOfContainer(
-                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                        animationSpec = tween(300)
-                    )
-                },
-                popEnterTransition = {
-                    slideIntoContainer(
-                        towards = AnimatedContentTransitionScope.SlideDirection.End,
-                        animationSpec = tween(300)
-                    )
-                },
-                popExitTransition = {
-                    slideOutOfContainer(
-                        towards = AnimatedContentTransitionScope.SlideDirection.End,
-                        animationSpec = tween(300)
-                    )
-                }
-            ) {
-                // HOME-TAB branch
-                navigation<HomeTabRoute>(
-                    startDestination = HomeRoute // Default screen within Default tab
+                NavHost(
+                    navController = mainAppNavCtl,
+                    startDestination = HomeTabRoute, // Default tab
+                    modifier = Modifier.padding(innerPadding),
+                    // Navigation Transition Animations
+                    enterTransition = {
+                        slideIntoContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                            animationSpec = tween(300)
+                        )
+                    },
+                    exitTransition = {
+                        slideOutOfContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                            animationSpec = tween(300)
+                        )
+                    },
+                    popEnterTransition = {
+                        slideIntoContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.End,
+                            animationSpec = tween(300)
+                        )
+                    },
+                    popExitTransition = {
+                        slideOutOfContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.End,
+                            animationSpec = tween(300)
+                        )
+                    }
                 ) {
-                    // HomeScreen
-                    composable<HomeRoute> {
-                        HomeScreen(
-                            viewModel = homeViewModel,
-                            onRestaurantClick = { restoId: String, restoName: String, imgId: String,
-                                                  avgRating: Double, totalRatingsString: String,
-                                                  slaTime: String, slaDist: String, cuisines: String ->
-                                mainAppNavCtl.navigate(
-                                    RestaurantDetailsRoute(
-                                        restoId = restoId,
-                                        restoName = restoName,
-                                        imgId = imgId,
-                                        avgRating = avgRating,
-                                        totalRatingsString = totalRatingsString,
-                                        slaTime = slaTime,
-                                        slaDist = slaDist,
-                                        cuisines = cuisines
+                    // HOME-TAB branch
+                    navigation<HomeTabRoute>(
+                        startDestination = HomeRoute // Default screen within Default tab
+                    ) {
+                        // HomeScreen
+                        composable<HomeRoute> {
+                            HomeScreen(
+                                viewModel = homeViewModel,
+                                onRestaurantClick = { restoId: String, restoName: String, imgId: String,
+                                                      avgRating: Double, totalRatingsString: String,
+                                                      slaTime: String, slaDist: String, cuisines: String ->
+                                    mainAppNavCtl.navigate(
+                                        RestaurantDetailsRoute(
+                                            restoId = restoId,
+                                            restoName = restoName,
+                                            imgId = imgId,
+                                            avgRating = avgRating,
+                                            totalRatingsString = totalRatingsString,
+                                            slaTime = slaTime,
+                                            slaDist = slaDist,
+                                            cuisines = cuisines
+                                        )
                                     )
-                                )
-                            },
-                            sharedTransitionScope = this@SharedTransitionLayout,
-                            animatedVisibilityScope = this@composable,
-                        )
-                    }
-                    // Restaurant Details screen
-                    composable<RestaurantDetailsRoute> { backStackEntry ->
-                        val args: RestaurantDetailsRoute = backStackEntry.toRoute()
-                        RestaurantDetailsScreen(
-                            restoId = args.restoId,
-                            restoName = args.restoName,
-                            imgId = args.imgId,
-                            avgRating = args.avgRating,
-                            totalRatingsString = args.totalRatingsString,
-                            slaTime = args.slaTime,
-                            slaDist = args.slaDist,
-                            cuisines = args.cuisines,
-                            cartRepository = cartRepository,
-                            sessionManager = sessionManager,
-                            sharedTransitionScope = this@SharedTransitionLayout,
-                            animatedVisibilityScope = this@composable,
-                        )
-                    }
-                }
-                // PROFILE-TAB branch
-                navigation<ProfileTabRoute>(startDestination = ProfileRoute) {
-                    composable<ProfileRoute> {
-                        ProfileScreen(
-                            onRequestCameraPermission = { requestCameraPermission() },
-                            onNavigateBack = { mainAppNavCtl.popBackStack() }
-                        )
-                    }
-                }
-                // SETTINGS-TAB branch
-                navigation<SettingsTabRoute>(startDestination = AppSettingsRoute) {
-                    composable<AppSettingsRoute> { SettingsScreen() }
-                }
-                // POKEMON-TAB branch
-                navigation<PokeTabRoute>(startDestination = PokeListingRoute) {
-                    // Pokemon Listing screen
-                    composable<PokeListingRoute> {
-                        PokemonListingScreen(
-                            onPokeCardClick = { id: Int, name: String ->
-                                mainAppNavCtl.navigate(PokemonDetailsRoute(id, name))
-                            }
-                        )
-                    }
-                    // Pokemon Details screen
-                    composable<PokemonDetailsRoute> { backStackEntry ->
-                        val args: PokemonDetailsRoute = backStackEntry.toRoute()
-                        PokemonDetailsScreen(args.id, args.name)
-                    }
-                }
-
-                // CART page (Independent leaf)
-                composable<CartRoute> {
-                    CartScreen(
-                        cartRepository = cartRepository,
-                        sessionManager = sessionManager,
-                        onNavigateBack = { mainAppNavCtl.popBackStack() },
-                        cartEmptyRedirect = {
-                            mainAppNavCtl.navigate(HomeRoute) {
-                                // Good practice: Clear backstack when redirecting to Home from empty cart
-                                popUpTo(HomeRoute) { inclusive = true }
-                            }
-                        }
-                    )
-                }
-            }
-        }
-    }
-    // PERMISSION SETTINGS REDIRECT DIALOG
-    if (showAppPermissionSettings) {
-        AlertDialog(
-            onDismissRequest = { showAppPermissionSettings = false },
-            title = {
-                Text("Location Permission Required")
-            },
-            text = {
-                Text("You have permanently denied location access. To detect nearby restaurants, please enable it in the App Settings.")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showAppPermissionSettings = false
-                        // Open System Settings for this specific app
-                        val intent = Intent(
-                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                        ).apply {
-                            data = Uri.fromParts(
-                                "package",
-                                context.packageName,
-                                null
+                                },
+                                sharedTransitionScope = this@SharedTransitionLayout,
+                                animatedVisibilityScope = this@composable,
                             )
                         }
-                        context.startActivity(intent)
+                        // Restaurant Details screen
+                        composable<RestaurantDetailsRoute> { backStackEntry ->
+                            val args: RestaurantDetailsRoute = backStackEntry.toRoute()
+                            RestaurantDetailsScreen(
+                                restoId = args.restoId,
+                                restoName = args.restoName,
+                                imgId = args.imgId,
+                                avgRating = args.avgRating,
+                                totalRatingsString = args.totalRatingsString,
+                                slaTime = args.slaTime,
+                                slaDist = args.slaDist,
+                                cuisines = args.cuisines,
+                                cartRepository = cartRepository,
+                                sessionManager = sessionManager,
+                                sharedTransitionScope = this@SharedTransitionLayout,
+                                animatedVisibilityScope = this@composable,
+                            )
+                        }
                     }
-                ) {
-                    Text("Open Settings")
+                    // PROFILE-TAB branch
+                    navigation<ProfileTabRoute>(startDestination = ProfileRoute) {
+                        composable<ProfileRoute> {
+                            ProfileScreen(
+                                onRequestCameraPermission = { requestCameraPermission() },
+                                onNavigateBack = { mainAppNavCtl.popBackStack() }
+                            )
+                        }
+                    }
+                    // SETTINGS-TAB branch
+                    navigation<SettingsTabRoute>(startDestination = AppSettingsRoute) {
+                        composable<AppSettingsRoute> { SettingsScreen() }
+                    }
+                    // POKEMON-TAB branch
+                    navigation<PokeTabRoute>(startDestination = PokeListingRoute) {
+                        // Pokemon Listing screen
+                        composable<PokeListingRoute> {
+                            PokemonListingScreen(
+                                onPokeCardClick = { id: Int, name: String ->
+                                    mainAppNavCtl.navigate(PokemonDetailsRoute(id, name))
+                                }
+                            )
+                        }
+                        // Pokemon Details screen
+                        composable<PokemonDetailsRoute> { backStackEntry ->
+                            val args: PokemonDetailsRoute = backStackEntry.toRoute()
+                            PokemonDetailsScreen(args.id, args.name)
+                        }
+                    }
+
+                    // CART page (Independent leaf)
+                    composable<CartRoute> {
+                        CartScreen(
+                            cartRepository = cartRepository,
+                            sessionManager = sessionManager,
+                            onNavigateBack = { mainAppNavCtl.popBackStack() },
+                            cartEmptyRedirect = {
+                                mainAppNavCtl.navigate(HomeRoute) {
+                                    // Good practice: Clear backstack when redirecting to Home from empty cart
+                                    popUpTo(HomeRoute) { inclusive = true }
+                                }
+                            }
+                        )
+                    }
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAppPermissionSettings = false }) {
-                    Text("Cancel")
-                }
+
+
             }
-        )
+        }
+
+        // CONNECTIVITY BANNER (Top Layer - Outside Scaffold)
+        // This makes it act like a true System Toast
+        ConnectivityBanner(isConnected = isConnected)
+
+        // PERMISSION SETTINGS REDIRECT DIALOG
+        if (showAppPermissionSettings) {
+            AlertDialog(
+                onDismissRequest = { showAppPermissionSettings = false },
+                title = {
+                    Text("Location Permission Required")
+                },
+                text = {
+                    Text("You have permanently denied location access. To detect nearby restaurants, please enable it in the App Settings.")
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showAppPermissionSettings = false
+                            // Open System Settings for this specific app
+                            val intent = Intent(
+                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                            ).apply {
+                                data = Uri.fromParts(
+                                    "package",
+                                    context.packageName,
+                                    null
+                                )
+                            }
+                            context.startActivity(intent)
+                        }
+                    ) {
+                        Text("Open Settings")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showAppPermissionSettings = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+        // LOCATION SELECTION POP-UP
+        if (showLocationSelectionSheet) {
+            LocationSelectionSheet(
+                viewModel = locationViewModel,
+                onDismiss = { showLocationSelectionSheet = false }
+            )
+        }
+
+
     }
-    // LOCATION SELECTION POP-UP
-    if (showLocationSelectionSheet) {
-        LocationSelectionSheet(
-            viewModel = locationViewModel,
-            onDismiss = { showLocationSelectionSheet = false }
-        )
-    }
+
 }
-
-
