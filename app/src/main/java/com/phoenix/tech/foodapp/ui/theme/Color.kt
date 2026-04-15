@@ -52,7 +52,7 @@ object AppTextFieldColors {
 fun getRatingColor(rating: Double): Color {
     return when (rating) {
         in 4.0..5.0 -> Color(0xFF1A8D51)
-        in 3.0..4.0 -> Color(0xFF56B72B)
+        in 3.0..4.0 -> Color(0xFF84BE34)
         in 2.0..3.0 -> Color(0xFFFF9800)
         in 0.0..2.0 -> Color(0xFFFA3232)
         else -> Color(0xFF696767) // Out of range

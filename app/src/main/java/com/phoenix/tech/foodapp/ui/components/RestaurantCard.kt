@@ -29,12 +29,14 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.phoenix.tech.foodapp.R
 import com.phoenix.tech.foodapp.data.model.RestoListingItemData
 import com.phoenix.tech.foodapp.utils.RESTO_IMG_BASE_URL
@@ -45,7 +47,7 @@ fun getRestoImgFullUrl(imgId: String): String {
     return "$RESTO_IMG_BASE_URL/$imgId"
 }
 
-private const val cardHeight = 170
+private const val cardImgHeight = 200
 private const val cardCornerRadius = 15
 
 @Composable
@@ -74,8 +76,15 @@ fun RestaurantCard(
                 Column {
                     // RESTAURANT IMAGE
                     AsyncImage(
-                        model = getRestoImgFullUrl(restaurant.cloudinaryImageId),
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(getRestoImgFullUrl(restaurant.cloudinaryImageId))
+                            .crossfade(true)
+                            .crossfade(200)
+                            .build(),
                         contentDescription = restaurant.name,
+                        contentScale = ContentScale.FillWidth,
+                        placeholder = painterResource(R.drawable.resto_placeholder),
+                        error = painterResource(R.drawable.resto_placeholder),
                         modifier = Modifier
                             .sharedElement(
                                 sharedContentState = rememberSharedContentState(
@@ -85,9 +94,9 @@ fun RestaurantCard(
                                 animatedVisibilityScope = animatedVisibilityScope
                             )
                             .fillMaxWidth()
-                            .height(cardHeight.dp),
-                        contentScale = ContentScale.FillWidth
+                            .height(cardImgHeight.dp)
                     )
+
                     // RESTAURANT DETAILS BELOW IMAGE
                     Column(
                         modifier = Modifier.padding(
@@ -227,60 +236,3 @@ fun RatingFractionalStar(
         )
     }
 }
-
-
-//@Composable
-//private fun CardBottomContent(restaurant: RestoListingItemData) {
-//
-//}
-
-
-//@Preview(showBackground = false)
-//@Composable
-//fun RestaurantCardPreview(
-//    modifier: Modifier = Modifier,
-//) {
-//    val context = LocalContext.current
-//    val restaurant = remember { SampleRestoListing.sampleRestoListingItem(context) }
-//
-//    AppTheme(darkTheme = false) {
-//
-//        Box(modifier) {
-//            Card(
-//                colors = CardDefaults.cardColors(
-//                    containerColor = MaterialTheme.colorScheme.onSecondary
-//                ),
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .clickable { },
-//                shape = RoundedCornerShape(cardCornerRadius.dp),
-//                elevation = CardDefaults.cardElevation(3.dp)
-//            ) {
-//                Column {
-//                    Image(
-//                        painter = painterResource(R.drawable.kfc),
-//                        contentDescription = restaurant.name,
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .height(cardHeight.dp),
-//                        contentScale = ContentScale.FillWidth,
-//                    )
-//                    CardBottomContent(restaurant)
-//                }
-//            }
-//            Text(
-//                text = restaurant.sla.slaString,
-//                style = MaterialTheme.typography.labelSmall,
-//                color = Color.White,
-//                modifier = Modifier
-//                    .align(Alignment.TopEnd)
-//                    .padding(top = 5.dp, end = 5.dp)
-//                    .background(
-//                        color = Color.Black.copy(alpha = 0.4f),
-//                        shape = RoundedCornerShape(8.dp)
-//                    )
-//                    .padding(horizontal = 8.dp, vertical = 4.dp)
-//            )
-//        }
-//    }
-//}

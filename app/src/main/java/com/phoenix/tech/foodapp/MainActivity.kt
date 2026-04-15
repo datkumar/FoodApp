@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
 import com.phoenix.tech.foodapp.data.local.AppDb
+import com.phoenix.tech.foodapp.data.network.HttpClient
 import com.phoenix.tech.foodapp.data.repository.CartRepository
 import com.phoenix.tech.foodapp.data.repository.SessionManager
 import com.phoenix.tech.foodapp.navigation.AuthGraphRoute
@@ -25,6 +26,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Initialize HttpClient first
+        HttpClient.initialize(this)
 
         // Initialize DB, Repository, Session Store
         val database = AppDb.getDatabase(this)

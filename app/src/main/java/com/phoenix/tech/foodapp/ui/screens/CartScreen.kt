@@ -217,34 +217,3 @@ fun CartItemRow(
         }
     }
 }
-
-//@Composable
-//fun CheckoutBottomBar(total: Long) {
-//    Surface(
-//        modifier = Modifier.fillMaxWidth(),
-//        shadowElevation = 8.dp,
-//        color = MaterialTheme.colorScheme.surface
-//    ) {
-//        Row(
-//            modifier = Modifier.padding(20.dp),
-//            horizontalArrangement = Arrangement.SpaceBetween,
-//            verticalAlignment = Alignment.CenterVertically
-//        ) {
-//            Column {
-//                Text("Total to Pay", style = MaterialTheme.typography.labelMedium)
-//                Text(
-//                    "₹$total",
-//                    style = MaterialTheme.typography.titleLarge,
-//                    fontWeight = FontWeight.ExtraBold
-//                )
-//            }
-//            Button(
-//                onClick = { /* Implement Payment Logic */ },
-//                modifier = Modifier.height(48.dp),
-//                shape = RoundedCornerShape(12.dp)
-//            ) {
-//                Text("PROCEED TO PAY")
-//            }
-//        }
-//    }
-//}
