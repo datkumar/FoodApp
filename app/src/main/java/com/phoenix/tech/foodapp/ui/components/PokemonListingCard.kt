@@ -14,8 +14,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.phoenix.tech.foodapp.R
 import com.phoenix.tech.foodapp.data.model.PokemonListItem
 
 @Composable
@@ -25,6 +29,9 @@ fun PokemonListingCard(
 ) {
     Card(
         onClick = { onClick() },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        ),
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp),
@@ -50,10 +57,17 @@ fun PokemonListingCard(
                 verticalArrangement = Arrangement.Center
             ) {
                 AsyncImage(
-                    model = pokemon.imgUrl,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(pokemon.imgUrl)
+                        .crossfade(true) // Smooth alpha transition
+                        .crossfade(250)
+                        .build(),
                     contentDescription = pokemon.name,
-                    modifier = Modifier.size(120.dp),
-                    contentScale = ContentScale.Fit
+                    contentScale = ContentScale.Fit,
+                    // Placeholder to reduce layout shift
+                    placeholder = painterResource(R.drawable.ic_pokeball_colored),
+                    error = painterResource(R.drawable.ic_pokeball),
+                    modifier = Modifier.size(120.dp)
                 )
                 Text(
                     pokemon.name,

@@ -51,7 +51,6 @@ android {
 
 secrets {
     propertiesFileName = "secrets.properties"
-
     // Optional: If you want to keep some keys in local.properties too,
     // the plugin will merge them.
     defaultPropertiesFileName = "local.properties"
