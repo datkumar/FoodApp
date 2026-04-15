@@ -19,7 +19,7 @@ import com.phoenix.tech.foodapp.R
 
 @Composable
 fun NotFoundPage(
-    msg: String = "Oops! No restaurants found at this location",
+    msg: String = "Oops! Could not find any items",
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),

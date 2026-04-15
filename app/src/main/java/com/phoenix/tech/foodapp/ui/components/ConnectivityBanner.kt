@@ -29,27 +29,34 @@ import kotlinx.coroutines.delay
 
 private const val ConnectivityBannerTag = "CONNECTIVITY_BANNER"
 
-
 @Composable
 fun ConnectivityBanner(isConnected: Boolean) {
-    var showOnlineFlash by remember { mutableStateOf(false) }
+    var showBanner by remember { mutableStateOf(false) }
+
+    // Track if this is the very first time the component is receiving data
+    // Don't show banner when first launch AND Connected
+    var isInitialEmission by remember { mutableStateOf(true) }
 
     // Trigger green flash when coming back online
     LaunchedEffect(isConnected) {
+        if (isInitialEmission) {
+            isInitialEmission = false
+            return@LaunchedEffect
+        }
         if (isConnected) {
-            showOnlineFlash = true
+            showBanner = true
             delay(2000)
-            showOnlineFlash = false
+            showBanner = false
         }
     }
 
     Log.d(
         ConnectivityBannerTag,
-        "CONNECTIVITY STATUS: isConnected=$isConnected, flash=$showOnlineFlash"
+        "CONNECTIVITY STATUS: isConnected=$isConnected, flash=$showBanner"
     )
 
     AnimatedVisibility(
-        visible = !isConnected || showOnlineFlash,
+        visible = !isConnected || showBanner,
         enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
         exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
         modifier = Modifier.zIndex(99f) // FORCE to the very front
@@ -73,6 +80,5 @@ fun ConnectivityBanner(isConnected: Boolean) {
                 )
             }
         }
-
     }
 }
