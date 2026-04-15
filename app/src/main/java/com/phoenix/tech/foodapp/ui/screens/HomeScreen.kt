@@ -127,7 +127,7 @@ fun HomeScreen(
 
             is HomeUiState.Success -> {
                 if (state.restoListingItems.isEmpty()) {
-                    NotFoundPage(msg = "Oops! No restaurants found at this location")
+                    NotFoundPage(msg = "Oops! No restaurants found here")
                 } else {
                     // LazyVerticalGrid needs an explicit state object so we can
                     // read scroll position. Without this we have no way to know

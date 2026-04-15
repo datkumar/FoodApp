@@ -539,7 +539,6 @@ fun MainAppLayout(
         }
 
         // CONNECTIVITY BANNER (Top Layer - Outside Scaffold)
-        // This makes it act like a true System Toast
         ConnectivityBanner(isConnected = isConnected)
 
         // PERMISSION SETTINGS REDIRECT DIALOG
