@@ -8,12 +8,12 @@ plugins {
 
 android {
     namespace = "com.phoenix.tech.foodapp"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.phoenix.tech.foodapp"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
 
@@ -51,7 +51,6 @@ android {
 
 secrets {
     propertiesFileName = "secrets.properties"
-
     // Optional: If you want to keep some keys in local.properties too,
     // the plugin will merge them.
     defaultPropertiesFileName = "local.properties"
