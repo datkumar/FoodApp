@@ -13,28 +13,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-
-//class CartViewModelFactory(private val repository: CartRepository) : ViewModelProvider.Factory {
-//    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-//        return when {
-//            modelClass.isAssignableFrom(RestaurantDetailsViewModel::class.java) -> {
-//                @Suppress("UNCHECKED_CAST")
-//                RestaurantDetailsViewModel(repository) as T
-//            }
-//
-//            modelClass.isAssignableFrom(CartViewModel::class.java) -> {
-//                @Suppress("UNCHECKED_CAST")
-//                CartViewModel(repository) as T
-//            }
-//
-//            else -> throw IllegalArgumentException(
-//                "Unknown ViewModel class: ${modelClass.name}"
-//            )
-//        }
-//    }
-//}
-
-
 class CartViewModelFactory(
     private val cartRepository: CartRepository,
     private val sessionManager: SessionManager
@@ -97,16 +75,6 @@ class CartViewModel(private val repository: CartRepository) : ViewModel() {
                 SharingStarted.WhileSubscribed(5000),
                 emptyMap()
             )
-
-//    val groupedItems: StateFlow<Map<String, List<CartItemEntity>>> = repository.allCartItems
-//        .map { items ->
-//            items.groupBy { it.restoId }
-//        }
-//        .stateIn(
-//            scope = viewModelScope,
-//            started = SharingStarted.WhileSubscribed(5000),
-//            initialValue = emptyMap()
-//        )
 
     fun updateQty(itemId: String, restoId: String, newQty: Int) {
         viewModelScope.launch {

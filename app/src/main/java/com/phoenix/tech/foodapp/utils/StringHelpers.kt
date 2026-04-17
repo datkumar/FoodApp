@@ -11,3 +11,10 @@ fun trimOverflowingText(
     return text.substring(0, maxLength - 2) + "..."
 
 }
+
+
+fun formattedPokemonName(name: String): String {
+    return name
+        .replace("-", " ") // Remove Dashes
+        .replaceFirstChar { it.uppercase() } // Capitalize first letter
+}
