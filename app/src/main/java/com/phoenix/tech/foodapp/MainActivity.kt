@@ -1,7 +1,10 @@
 package com.phoenix.tech.foodapp
 
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -9,6 +12,8 @@ import androidx.annotation.RequiresApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.animation.doOnEnd
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.phoenix.tech.foodapp.data.local.AppDb
 import com.phoenix.tech.foodapp.data.network.HttpClient
@@ -18,38 +23,56 @@ import com.phoenix.tech.foodapp.navigation.AuthGraphRoute
 import com.phoenix.tech.foodapp.navigation.MainAppGraphRoute
 import com.phoenix.tech.foodapp.navigation.RootNavigation
 import com.phoenix.tech.foodapp.ui.theme.AppTheme
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Initialize the Splash API BEFORE super.onCreate
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Initialize HttpClient first
-        HttpClient.initialize(this)
+        // To store resolved Start-Destination
+        var startDest by mutableStateOf<Any?>(null)
 
-        // Initialize DB, Repository, Session Store
+        // Synchronous Initialization (Serial and Blocking):
+        HttpClient.initialize(this)
         val database = AppDb.getDatabase(this)
         val cartRepository = CartRepository(database.cartDao())
         val sessionManager = SessionManager(this)
 
-        // State to hold the startDestination
-        var startDestination by mutableStateOf<Any?>(null)
-
+        // Asynchronous Initialization:
         lifecycleScope.launch {
-            // Check for existing token and dynamically set start-dest
+            // Check for existing token and set start-dest accordingly
             val token = sessionManager.authToken.firstOrNull()
-            startDestination = if (!token.isNullOrEmpty()) MainAppGraphRoute else AuthGraphRoute
+            // Tiny delay to ensure Splash is seen
+            delay(200)
+            startDest = if (!token.isNullOrEmpty()) MainAppGraphRoute else AuthGraphRoute
+        }
+
+        // Keep showing the System Splash until startDest is null
+        splashScreen.setKeepOnScreenCondition { startDest == null }
+        // Define Animation between Splash Screen exit and App Screen start
+        splashScreen.setOnExitAnimationListener { splashScreenView ->
+            val fadeOut = ObjectAnimator.ofFloat(splashScreenView.view, View.ALPHA, 1f, 0f)
+            val scaleX = ObjectAnimator.ofFloat(splashScreenView.iconView, View.SCALE_X, 1f, 2f)
+            val scaleY = ObjectAnimator.ofFloat(splashScreenView.iconView, View.SCALE_Y, 1f, 2f)
+            AnimatorSet().apply {
+                duration = 400L
+                playTogether(fadeOut, scaleX, scaleY)
+                doOnEnd { splashScreenView.remove() }
+                start()
+            }
         }
 
         setContent {
             AppTheme {
-                // Only render navigation once we know where we are going
-                startDestination?.let { destination ->
+                startDest?.let { dest ->
                     RootNavigation(
-                        startDestination = destination,
+                        startDestination = dest,
                         cartRepository = cartRepository,
                         sessionManager = sessionManager
                     )

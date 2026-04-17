@@ -51,11 +51,13 @@ import com.phoenix.tech.foodapp.ui.components.ErrorPage
 import com.phoenix.tech.foodapp.ui.state.PokemonDetailsUiState
 import com.phoenix.tech.foodapp.ui.state.PokemonDetailsViewModel
 import com.phoenix.tech.foodapp.ui.state.PokemonDetailsViewModelFactory
+import com.phoenix.tech.foodapp.utils.formattedPokemonName
 import kotlinx.coroutines.delay
 
 @Composable
 fun PokemonDetailsScreen(
-    id: Int, name: String,
+    id: Int,
+    name: String,
     viewModel: PokemonDetailsViewModel = viewModel(
         factory = PokemonDetailsViewModelFactory(PokemonDetailsRepository())
     ),
@@ -138,7 +140,7 @@ fun PokemonDetailsContent(
         // Title & Types
         item {
             PokemonHeader(
-                name = pokemon.name,
+                name = formattedPokemonName(pokemon.name),
                 types = pokemon.types
             )
         }

@@ -112,4 +112,7 @@ dependencies {
     // Pagination
     implementation(libs.androidx.paging.runtime)
     implementation(libs.androidx.paging.compose)
+
+    // Splash Screen
+    implementation(libs.androidx.core.splashscreen)
 }

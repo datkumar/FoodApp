@@ -5,13 +5,8 @@ import androidx.paging.PagingState
 import com.phoenix.tech.foodapp.data.model.PokemonListItem
 import com.phoenix.tech.foodapp.data.network.PokeApi
 import com.phoenix.tech.foodapp.utils.POKE_IMG_BASE_URL
+import com.phoenix.tech.foodapp.utils.formattedPokemonName
 
-
-private fun formattedPokemonName(name: String): String {
-    return name
-        .replace("-", " ") // Remove Dashes
-        .replaceFirstChar { it.uppercase() } // Capitalize first letter
-}
 
 class PokemonPagingSource(
     private val api: PokeApi
@@ -35,7 +30,7 @@ class PokemonPagingSource(
             // Map the API response to your UI model
             val mappedPokemons = response.results.mapNotNull { entry ->
                 // Extract ID from Details URL
-                val id = entry.url.split("/").filter { it.isNotEmpty() }.last().toInt()
+                val id = entry.url.split("/").last { it.isNotEmpty() }.toInt()
 
                 // Ignore the "Special Forms" IDs like 10025
                 if (id > 1025) return@mapNotNull null

@@ -99,7 +99,9 @@ fun PokemonListingScreen(
                     pagingItems[index]?.let { pokemon ->
                         PokemonListingCard(
                             pokemon = pokemon,
-                            onClick = { onPokeCardClick(pokemon.id, pokemon.name) }
+                            onClick = {
+                                onPokeCardClick(pokemon.id, pokemon.name)
+                            }
                         )
                     }
                 }
