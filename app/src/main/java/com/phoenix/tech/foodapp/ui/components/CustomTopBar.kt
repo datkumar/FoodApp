@@ -31,6 +31,11 @@ import com.phoenix.tech.foodapp.utils.trimOverflowingText
 
 //const val topBarTag = "TOPBAR"
 
+private fun getBadgeText(itemCnt: Int): String {
+    if (itemCnt >= 10) return "9+"
+    else if (itemCnt > 0) return itemCnt.toString()
+    return ""
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,16 +120,13 @@ fun CustomTopBar(
                 ) {
                     Box(modifier = Modifier.padding(top = 6.dp, end = 6.dp)) {
                         BadgedBox(
-
                             badge = {
                                 if (cartCount > 0) {
-                                    val badgeText =
-                                        if (cartCount >= 10) "9+" else cartCount.toString()
                                     Badge(
                                         containerColor = MaterialTheme.colorScheme.onPrimaryContainer
                                     ) {
                                         Text(
-                                            badgeText,
+                                            getBadgeText(cartCount),
                                             fontSize = 10.sp,
                                             color = MaterialTheme.colorScheme.primaryContainer
                                         )

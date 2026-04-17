@@ -38,5 +38,8 @@ class CartRepository(
             cartDao.updateQuantity(itemId, newQty)
         }
     }
-    
+
+    suspend fun clearCart() {
+        cartDao.clearAllCartData()
+    }
 }

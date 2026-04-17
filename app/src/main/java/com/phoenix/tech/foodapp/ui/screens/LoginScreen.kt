@@ -53,9 +53,6 @@ import com.phoenix.tech.foodapp.ui.theme.AppTextFieldColors
 import com.phoenix.tech.foodapp.ui.theme.AppTheme
 import com.phoenix.tech.foodapp.utils.InputValidators
 
-
-// "kdesai@phoenix.tech" , "Admin@123"
-
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LoginScreen(

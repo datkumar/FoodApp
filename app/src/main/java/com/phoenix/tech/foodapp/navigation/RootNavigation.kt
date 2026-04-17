@@ -8,15 +8,18 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import com.phoenix.tech.foodapp.data.repository.AuthRepository
 import com.phoenix.tech.foodapp.data.repository.CartRepository
 import com.phoenix.tech.foodapp.data.repository.SessionManager
 import com.phoenix.tech.foodapp.ui.screens.LoginScreen
 import com.phoenix.tech.foodapp.ui.state.LoginViewModel
+import com.phoenix.tech.foodapp.ui.state.LoginViewModelFactory
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun RootNavigation(
     startDestination: Any, // ensure only MainAppGraph | AuthGraph
+    authRepository: AuthRepository,
     cartRepository: CartRepository,
     sessionManager: SessionManager
 ) {
@@ -31,9 +34,10 @@ fun RootNavigation(
         // Auth Graph
         navigation<AuthGraphRoute>(startDestination = LoginRoute) {
             composable<LoginRoute> {
-                // Obtain the ViewModel here
-                val loginViewModel: LoginViewModel = viewModel()
-
+                // Initialize the shared ViewModel with the shared Repository
+                val loginViewModel: LoginViewModel = viewModel(
+                    factory = LoginViewModelFactory(authRepository)
+                )
                 LoginScreen(
                     viewModel = loginViewModel,
                     onLoginSuccess = {
@@ -48,8 +52,14 @@ fun RootNavigation(
         // Main-App Graph
         composable<MainAppGraphRoute> {
             MainAppLayout(
+                authRepository = authRepository,
                 cartRepository = cartRepository,
-                sessionManager = sessionManager
+                sessionManager = sessionManager,
+                onLogout = {
+                    rootNavCtl.navigate(AuthGraphRoute) {
+                        popUpTo(MainAppGraphRoute) { inclusive = true }
+                    }
+                }
             )
         }
     }

@@ -17,6 +17,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.phoenix.tech.foodapp.data.local.AppDb
 import com.phoenix.tech.foodapp.data.network.HttpClient
+import com.phoenix.tech.foodapp.data.repository.AuthRepository
 import com.phoenix.tech.foodapp.data.repository.CartRepository
 import com.phoenix.tech.foodapp.data.repository.SessionManager
 import com.phoenix.tech.foodapp.navigation.AuthGraphRoute
@@ -41,8 +42,13 @@ class MainActivity : ComponentActivity() {
         // Synchronous Initialization (Serial and Blocking):
         HttpClient.initialize(this)
         val database = AppDb.getDatabase(this)
-        val cartRepository = CartRepository(database.cartDao())
         val sessionManager = SessionManager(this)
+        val cartRepository = CartRepository(database.cartDao())
+        val authRepository = AuthRepository(
+            api = HttpClient.authApi,
+            sessionManager = sessionManager,
+            cartRepository = cartRepository
+        )
 
         // Asynchronous Initialization:
         lifecycleScope.launch {
@@ -73,8 +79,9 @@ class MainActivity : ComponentActivity() {
                 startDest?.let { dest ->
                     RootNavigation(
                         startDestination = dest,
+                        sessionManager = sessionManager,
+                        authRepository = authRepository,
                         cartRepository = cartRepository,
-                        sessionManager = sessionManager
                     )
                 }
             }

@@ -3,11 +3,11 @@ package com.phoenix.tech.foodapp.utils
 object AppKeys {
     const val PREFS_STORE = "PREFS_STORE"
     const val AUTH_TOKEN = "AUTH_TOKEN"
-    const val DB_NAME = "food_app_db"
-    const val LOC_NAME = "loc_name"
-    const val LOC_LAT = "loc_lat"
-    const val LOC_LONG = "loc_long"
-    const val LOC_IS_AUTO = "loc_is_auto"
+    const val DB_NAME = "FOOD_APP_DB"
+    const val LOC_NAME = "LOC_NAME"
+    const val LOC_LAT = "LOC_LAT"
+    const val LOC_LONG = "LOC_LONG"
+    const val LOC_IS_AUTO = "LOC_IS_AUTO"
 }
 
 class RestoSharedElemAnimateKeys(restoId: String) {

@@ -37,4 +37,20 @@ interface CartDao {
     @Query("UPDATE cart_items SET quantity = :qty WHERE itemId = :itemId")
     suspend fun updateQuantity(itemId: String, qty: Int)
 
+
+    @Query("DELETE FROM cart_items")
+    suspend fun clearAllItems()
+
+    @Query("DELETE FROM restaurants")
+    suspend fun clearAllRestaurants()
+
+    /**
+     * Clears the entire database for a fresh logout state.
+     * Wrapped in a transaction to ensure atomic operation.
+     */
+    @Transaction
+    suspend fun clearAllCartData() {
+        clearAllItems()
+        clearAllRestaurants()
+    }
 }

@@ -42,8 +42,11 @@ class SessionManager(context: Context) {
         preferences[_keys.authToken]
     }
 
-    suspend fun clearAuthToken() {
-        _dataStore.edit { it.clear() }
+    suspend fun clearAuthSession() {
+        _dataStore.edit { prefs ->
+            prefs.remove(_keys.authToken)
+            // Note: Don't clear location data so we won't have to re-detect
+        }
     }
 
     val userLocation: Flow<UserLocation?> = _dataStore.data

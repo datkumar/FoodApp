@@ -12,14 +12,12 @@ import java.net.UnknownHostException
 
 class AuthRepository(
     private val api: AuthApi = HttpClient.authApi,
-    private val sessionManager: SessionManager // Injected
+    private val sessionManager: SessionManager, // Inject Session Data
+    private val cartRepository: CartRepository // Inject Cart Data
 ) {
-    private var authToken: String? = null
-
     suspend fun login(email: String, pswd: String): Result<String> {
         return try {
             val encodedPswd = encodeToString(pswd.toByteArray(), NO_WRAP)
-//            Log.d(AuthRepoTag, "Encoded Pswd: $encodedPswd")
 
             val request = LoginRequest(
                 userName = email,
@@ -57,6 +55,16 @@ class AuthRepository(
         }
     }
 
+    suspend fun logout() {
+        // 1. Clear the Auth Token
+        sessionManager.clearAuthSession()
+        // 2. Clear the Room database so the next user has an empty cart
+        cartRepository.clearCart()
+        // 3. (Optional) Call your API if you have a /logout endpoint
+        // 3. (Optional) Invalidate in-memory tokens if you have a Singleton HttpClient
+        // HttpClient.clearToken()
+    }
+
     private fun handleException(e: Exception): Result<String> {
         return when (e) {
             is UnknownHostException -> Result.failure(Exception("No internet connection"))
@@ -64,10 +72,4 @@ class AuthRepository(
             else -> Result.failure(Exception(e.localizedMessage ?: "Unexpected error"))
         }
     }
-
-    suspend fun logout() {
-        authToken = null
-        sessionManager.clearAuthToken()
-    }
-
 }

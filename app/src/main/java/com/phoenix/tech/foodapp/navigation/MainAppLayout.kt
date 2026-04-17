@@ -55,18 +55,21 @@ import androidx.navigation.navigation
 import androidx.navigation.toRoute
 import com.phoenix.tech.foodapp.R
 import com.phoenix.tech.foodapp.data.network.NetworkObserver
+import com.phoenix.tech.foodapp.data.repository.AuthRepository
 import com.phoenix.tech.foodapp.data.repository.CartRepository
 import com.phoenix.tech.foodapp.data.repository.SessionManager
 import com.phoenix.tech.foodapp.ui.components.ConnectivityBanner
 import com.phoenix.tech.foodapp.ui.components.CustomTopBar
 import com.phoenix.tech.foodapp.ui.components.LocationSelectionSheet
+import com.phoenix.tech.foodapp.ui.screens.AppSettingsScreen
 import com.phoenix.tech.foodapp.ui.screens.CartScreen
 import com.phoenix.tech.foodapp.ui.screens.HomeScreen
 import com.phoenix.tech.foodapp.ui.screens.PokemonDetailsScreen
 import com.phoenix.tech.foodapp.ui.screens.PokemonListingScreen
 import com.phoenix.tech.foodapp.ui.screens.ProfileScreen
 import com.phoenix.tech.foodapp.ui.screens.RestaurantDetailsScreen
-import com.phoenix.tech.foodapp.ui.screens.SettingsScreen
+import com.phoenix.tech.foodapp.ui.state.AppSettingsViewModel
+import com.phoenix.tech.foodapp.ui.state.AppSettingsViewModelFactory
 import com.phoenix.tech.foodapp.ui.state.HomeViewModel
 import com.phoenix.tech.foodapp.ui.state.HomeViewModelFactory
 import com.phoenix.tech.foodapp.ui.state.LocationResult
@@ -82,7 +85,9 @@ const val MainLayoutPermsTag = "MAIN_LAYOUT_PERMS"
 @Composable
 fun MainAppLayout(
     cartRepository: CartRepository,
-    sessionManager: SessionManager
+    authRepository: AuthRepository,
+    sessionManager: SessionManager,
+    onLogout: () -> Unit
 ) {
     // Navigation state
     val mainAppNavCtl = rememberNavController()
@@ -499,8 +504,17 @@ fun MainAppLayout(
                     }
                     // SETTINGS-TAB branch
                     navigation<SettingsTabRoute>(startDestination = AppSettingsRoute) {
-                        composable<AppSettingsRoute> { SettingsScreen() }
+                        composable<AppSettingsRoute> {
+                            val appSettingsViewModel: AppSettingsViewModel = viewModel(
+                                factory = AppSettingsViewModelFactory(authRepository)
+                            )
+                            AppSettingsScreen(
+                                viewModel = appSettingsViewModel,
+                                onLogoutNav = onLogout
+                            )
+                        }
                     }
+
                     // POKEMON-TAB branch
                     navigation<PokeTabRoute>(startDestination = PokeListingRoute) {
                         // Pokemon Listing screen
