@@ -1,7 +1,6 @@
 package com.phoenix.tech.foodapp.ui.screens
 
 import androidx.annotation.DrawableRes
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -117,7 +116,6 @@ private fun LoginContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(scrollState) // Enables auto-scrolling when keyboard appears
             .padding(horizontal = 35.dp),
         verticalArrangement = Arrangement.Center,
@@ -126,7 +124,7 @@ private fun LoginContent(
         Text(
             "Welcome to $appName",
             style = MaterialTheme.typography.displayLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
         )
 
         Spacer(modifier = Modifier.height(30.dp))
@@ -284,6 +282,7 @@ private fun EditTextField(
             onDone = { if (isValid) focusManager.clearFocus() }
         ),
         colors = OutlinedTextFieldDefaults.colors(
+            unfocusedContainerColor = MaterialTheme.colorScheme.background,
             focusedBorderColor = AppTextFieldColors.Focused,
             unfocusedBorderColor = stateColor,
             errorBorderColor = AppTextFieldColors.Error,

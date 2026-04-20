@@ -1,3 +1,6 @@
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -14,8 +17,10 @@ android {
         applicationId = "com.phoenix.tech.foodapp"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+
+        val buildNum = generateBuildNumber("01")
+        versionCode = buildNum.toInt()
+        versionName = "1.0.$buildNum"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -78,6 +83,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.animation)
+    implementation(libs.androidx.core.i18n)
 
     // Testing & Debugging
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -115,4 +121,14 @@ dependencies {
 
     // Splash Screen
     implementation(libs.androidx.core.splashscreen)
+}
+
+
+fun generateBuildNumber(count: String = "01"): String {
+    val now = LocalDateTime.now()
+    val formatter = DateTimeFormatter.ofPattern("yyyyMMdd")
+    val timeStamp = now.format(formatter)
+    val buildNum = "$timeStamp$count"
+    println("CURRENT BUILD NUMBER: $buildNum")
+    return buildNum
 }
