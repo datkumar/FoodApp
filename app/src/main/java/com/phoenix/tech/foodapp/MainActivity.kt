@@ -25,7 +25,7 @@ import com.phoenix.tech.foodapp.navigation.MainAppGraphRoute
 import com.phoenix.tech.foodapp.navigation.RootNavigation
 import com.phoenix.tech.foodapp.ui.theme.AppTheme
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -52,11 +52,9 @@ class MainActivity : ComponentActivity() {
 
         // Asynchronous Initialization:
         lifecycleScope.launch {
-            // Check for existing token and set start-dest accordingly
-            val token = sessionManager.authToken.firstOrNull()
-            // Tiny delay to ensure Splash is seen
-            delay(200)
-            startDest = if (!token.isNullOrEmpty()) MainAppGraphRoute else AuthGraphRoute
+            val isAuthenticated = sessionManager.isAuthenticated.first()
+            delay(200) // Tiny delay to ensure Splash is seen
+            startDest = if (isAuthenticated) MainAppGraphRoute else AuthGraphRoute
         }
 
         // Keep showing the System Splash until startDest is null
@@ -64,8 +62,8 @@ class MainActivity : ComponentActivity() {
         // Define Animation between Splash Screen exit and App Screen start
         splashScreen.setOnExitAnimationListener { splashScreenView ->
             val fadeOut = ObjectAnimator.ofFloat(splashScreenView.view, View.ALPHA, 1f, 0f)
-            val scaleX = ObjectAnimator.ofFloat(splashScreenView.iconView, View.SCALE_X, 1f, 2f)
-            val scaleY = ObjectAnimator.ofFloat(splashScreenView.iconView, View.SCALE_Y, 1f, 2f)
+            val scaleX = ObjectAnimator.ofFloat(splashScreenView.iconView, View.SCALE_X, 1f, 2.5f)
+            val scaleY = ObjectAnimator.ofFloat(splashScreenView.iconView, View.SCALE_Y, 1f, 2.5f)
             AnimatorSet().apply {
                 duration = 400L
                 playTogether(fadeOut, scaleX, scaleY)

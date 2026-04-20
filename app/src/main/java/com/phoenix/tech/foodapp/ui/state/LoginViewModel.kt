@@ -36,7 +36,9 @@ class LoginViewModel(
             // Use the shared repository
             val result = authRepository.login(email, pswd)
             _uiState.value = result.fold(
-                onSuccess = { token -> LoginUiState.Success(token) },
+                onSuccess = { userData ->
+                    LoginUiState.Success(userData.token)
+                },
                 onFailure = { exception ->
                     LoginUiState.Error(exception.message ?: "Unknown Error")
                 }
@@ -48,31 +50,3 @@ class LoginViewModel(
         _uiState.value = LoginUiState.Idle
     }
 }
-
-
-//class LoginViewModel(
-//    private val repository: AuthRepository = AuthRepository(RetrofitClient.authApi)
-//) : ViewModel() {
-//
-//    private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
-//    val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
-//
-//    fun login(email: String, pswd: String) {
-//        viewModelScope.launch {
-//            _uiState.value = LoginUiState.Loading
-//            val result = repository.login(email, pswd)
-//            _uiState.value = result.fold(
-//                onSuccess = { token -> LoginUiState.Success(token) },
-//                onFailure = { exception ->
-//                    LoginUiState.Error(
-//                        exception.message ?: "Unknown Error"
-//                    )
-//                }
-//            )
-//        }
-//    }
-//
-//    fun resetState() {
-//        _uiState.value = LoginUiState.Idle
-//    }
-//}

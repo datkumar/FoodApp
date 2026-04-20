@@ -1,9 +1,21 @@
 package com.phoenix.tech.foodapp.utils
 
 object AppKeys {
+    // DataStore SharedPrefs and Local DB names
     const val PREFS_STORE = "PREFS_STORE"
-    const val AUTH_TOKEN = "AUTH_TOKEN"
     const val DB_NAME = "FOOD_APP_DB"
+
+    // User Data key names
+    const val USER_TOKEN = "USER_TOKEN"
+    const val USER_EMAIL = "USER_EMAIL"
+    const val USER_PHONE = "USER_PHONE"
+    const val USER_USERNAME = "USER_USERNAME"
+    const val USER_ROLE = "USER_ROLE"
+    const val USER_PFP = "USER_PFP" // Profile Picture
+    const val USER_FIRSTNAME = "USER_FIRSTNAME"
+    const val USER_LASTNAME = "USER_LASTNAME"
+
+    // Location Data key names
     const val LOC_NAME = "LOC_NAME"
     const val LOC_LAT = "LOC_LAT"
     const val LOC_LONG = "LOC_LONG"

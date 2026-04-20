@@ -18,6 +18,8 @@ data class LoginUserData(
     val lastName: String,
     val userName: String,
     val email: String,
-    val profilePicture: String? = null,
-    // Add other fields as needed
+    val mobileNumber: String,
+    val orgName: String,
+    val roleName: String,
+    val profilePicture: String,
 )

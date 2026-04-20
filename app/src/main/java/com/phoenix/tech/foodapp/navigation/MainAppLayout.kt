@@ -498,7 +498,6 @@ fun MainAppLayout(
                         composable<ProfileRoute> {
                             ProfileScreen(
                                 onRequestCameraPermission = { requestCameraPermission() },
-                                onNavigateBack = { mainAppNavCtl.popBackStack() }
                             )
                         }
                     }

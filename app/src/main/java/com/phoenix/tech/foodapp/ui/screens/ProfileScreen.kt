@@ -12,11 +12,12 @@ import androidx.compose.ui.Modifier
 @Composable
 fun ProfileScreen(
     onRequestCameraPermission: () -> Unit,
-    onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
         Column {
             // Example: Triggering it from a profile picture edit button
             Button(

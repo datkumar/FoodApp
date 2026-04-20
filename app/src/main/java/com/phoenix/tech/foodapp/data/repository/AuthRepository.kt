@@ -3,6 +3,7 @@ package com.phoenix.tech.foodapp.data.repository
 import android.util.Base64.NO_WRAP
 import android.util.Base64.encodeToString
 import com.phoenix.tech.foodapp.data.model.LoginRequest
+import com.phoenix.tech.foodapp.data.model.LoginUserData
 import com.phoenix.tech.foodapp.data.network.AuthApi
 import com.phoenix.tech.foodapp.data.network.HttpClient
 import java.net.SocketTimeoutException
@@ -15,49 +16,37 @@ class AuthRepository(
     private val sessionManager: SessionManager, // Inject Session Data
     private val cartRepository: CartRepository // Inject Cart Data
 ) {
-    suspend fun login(email: String, pswd: String): Result<String> {
-        return try {
+    suspend fun login(
+        email: String, pswd: String
+    ): Result<LoginUserData> {
+        try {
             val encodedPswd = encodeToString(pswd.toByteArray(), NO_WRAP)
-
-            val request = LoginRequest(
-                userName = email,
-                password = encodedPswd
-            )
+            // Build and fire Login request
+            val request = LoginRequest(userName = email, password = encodedPswd)
             val response = api.login(request)
 
             if (response.isSuccessful) { // 2xx status codes
                 val body = response.body()
-
-                // FIX: Check if body is 200 AND data object actually exists
-                if (body?.statusCode == 200) {
-                    val token = body.data?.token // Safe call, no !!
-
-                    if (token != null) {
-                        sessionManager.setAuthToken(token) // Save to Prefs
-                        Result.success(token)
-                    } else {
-                        // Case where 200 is returned but data block is missing
-                        Result.failure(Exception("Login successful, but user data was missing."))
-                    }
-                } else {
-                    // Handles internal 409/501 errors which might've been sent as 2xx status
-                    val msg = body?.statusMessage ?: "Authentication failed"
-                    Result.failure(Exception(msg))
+                // Status 200 AND Data exists
+                if (body?.statusCode == 200 && body.data != null) {
+                    val userData: LoginUserData = body.data
+                    sessionManager.saveUserInfo(userData)
+                    return Result.success(userData)
                 }
+                return Result.failure(Exception(body?.statusMessage ?: "Data missing"))
             } else {
                 // Handle non-2xx HTTP errors
-                val msg = "Server Error: HTTP ${response.code()}"
-                Result.failure(Exception(msg))
+                return Result.failure(Exception("Server Error: HTTP ${response.code()}"))
             }
 
         } catch (e: Exception) {
-            handleException(e)
+            return handleException(e)
         }
     }
 
     suspend fun logout() {
         // 1. Clear the Auth Token
-        sessionManager.clearAuthSession()
+        sessionManager.clearUserInfo()
         // 2. Clear the Room database so the next user has an empty cart
         cartRepository.clearCart()
         // 3. (Optional) Call your API if you have a /logout endpoint
@@ -65,11 +54,12 @@ class AuthRepository(
         // HttpClient.clearToken()
     }
 
-    private fun handleException(e: Exception): Result<String> {
-        return when (e) {
-            is UnknownHostException -> Result.failure(Exception("No internet connection"))
-            is SocketTimeoutException -> Result.failure(Exception("Server timed out"))
-            else -> Result.failure(Exception(e.localizedMessage ?: "Unexpected error"))
+    private fun <T> handleException(e: Exception): Result<T> {
+        val message = when (e) {
+            is UnknownHostException -> "No internet connection"
+            is SocketTimeoutException -> "Server timed out"
+            else -> e.localizedMessage ?: "Unexpected error"
         }
+        return Result.failure(Exception(message))
     }
 }
