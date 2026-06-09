@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.phoenix.tech.foodapp.data.local.entities.CartItemEntity
 import com.phoenix.tech.foodapp.data.local.entities.RestaurantEntity
+import com.phoenix.tech.foodapp.data.model.RestoDetailsResult
 import com.phoenix.tech.foodapp.data.repository.CartRepository
 import com.phoenix.tech.foodapp.data.repository.RestoDetailsRepository
 import com.phoenix.tech.foodapp.data.repository.SessionManager
@@ -14,6 +15,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+
+sealed class RestoDetailsUiState {
+    object Loading : RestoDetailsUiState()
+
+    data class Success(
+        val restoDetailsResult: RestoDetailsResult
+    ) : RestoDetailsUiState()
+
+    data class Error(val message: String) : RestoDetailsUiState()
+}
 
 class RestoDetailsViewModelFactory(
     private val cartRepository: CartRepository,

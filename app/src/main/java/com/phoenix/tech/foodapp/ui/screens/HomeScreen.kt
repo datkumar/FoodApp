@@ -74,6 +74,13 @@ fun HomeScreen(
     if (showExitConfirmDialog) {
         val localActivity = LocalActivity.current
         AlertDialog(
+            title = {
+                Text(
+                    "Exit App",
+                    style = MaterialTheme.typography.displayMedium
+                )
+            },
+            text = { Text("Are you sure you want to leave Zwiggy?") },
             onDismissRequest = { showExitConfirmDialog = false },
             confirmButton = {
                 TextButton(
@@ -82,7 +89,7 @@ fun HomeScreen(
                         localActivity?.finishAndRemoveTask()
                     }
                 ) {
-                    Text("Exit")
+                    Text("Yes I'm sure")
                 }
             },
             dismissButton = {
@@ -92,13 +99,11 @@ fun HomeScreen(
                     Text("Cancel")
                 }
             },
-            title = { Text("Exit App") },
-            text = { Text("Are you sure you want to leave Zwiggy?") }
         )
     }
     PullToRefreshBox(
         isRefreshing = uiState is HomeUiState.Loading,
-        onRefresh = { viewModel.refreshRestaurants() }, // force refetching
+        onRefresh = { viewModel.hardRefreshRestaurants() }, // force refetching
         modifier = Modifier.fillMaxSize()
     ) {
         when (val state = uiState) {

@@ -20,6 +20,7 @@ sealed class PokemonListUiState {
     data class Error(val message: String) : PokemonListUiState()
 }
 
+
 class PokemonListViewModelFactory(
     private val repository: PokemonListRepository
 ) : ViewModelProvider.Factory {

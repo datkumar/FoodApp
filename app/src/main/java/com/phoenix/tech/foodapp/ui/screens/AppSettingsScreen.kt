@@ -10,16 +10,24 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.phoenix.tech.foodapp.BuildConfig
 import com.phoenix.tech.foodapp.ui.state.AppSettingsViewModel
+import com.phoenix.tech.foodapp.ui.theme.AppTextFieldColors
 
 
 @Composable
@@ -28,26 +36,60 @@ fun AppSettingsScreen(
     onLogoutNav: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showLogoutConfirmDialog by remember { mutableStateOf(false) }
+
     Column(
-        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier.fillMaxSize()
 
     ) {
+        // Logout Confirmation Popup
+        if (showLogoutConfirmDialog) {
+            AlertDialog(
+                title = {
+                    Text(
+                        "Confirm Logout",
+                        style = MaterialTheme.typography.displayMedium
+                    )
+                },
+                text = { Text("Are you sure you want to log out?") },
+                onDismissRequest = { showLogoutConfirmDialog = false },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            // Perform Logout via ViewModel
+                            viewModel.performLogout(onLogoutSuccess = onLogoutNav)
+                        }
+                    ) {
+                        Text("Confirm")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showLogoutConfirmDialog = false }
+                    ) {
+                        Text("Cancel")
+                    }
+                },
+            )
+        }
+        Spacer(Modifier.height(10.dp))
         Text(
             "Build Info",
             style = MaterialTheme.typography.displayMedium,
             modifier = Modifier.padding(vertical = 15.dp)
         )
-        BuildInfo()
-        Spacer(Modifier.height(15.dp))
+        BuildInfoTable()
+        Spacer(Modifier.height(30.dp))
         Button(
-            onClick = {
-                // We call the ViewModel here.
-                viewModel.performLogout(onLogoutSuccess = onLogoutNav)
-            }
+            modifier = Modifier.fillMaxWidth(0.8f),
+            colors = ButtonDefaults.buttonColors(containerColor = AppTextFieldColors.Error),
+            onClick = { showLogoutConfirmDialog = true }
         ) {
-            Text("Logout")
+            Text(
+                "Logout",
+                style = MaterialTheme.typography.titleLarge
+            )
         }
     }
 }
@@ -72,7 +114,7 @@ private fun BuildInfoRow(label: String, value: String) {
 }
 
 @Composable
-private fun BuildInfo() {
+private fun BuildInfoTable() {
     Column(
         modifier = Modifier
             .fillMaxWidth(0.8f)

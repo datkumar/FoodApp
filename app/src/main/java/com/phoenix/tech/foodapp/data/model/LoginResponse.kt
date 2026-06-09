@@ -7,12 +7,12 @@ import kotlinx.serialization.Serializable
 data class LoginResponse(
     val statusCode: Int,
     val statusMessage: String,
-    val data: LoginUserData? = null, // Only present in SUCCESS-case response
+    val data: UserData? = null, // Only present in SUCCESS-case response
 )
 
 
 @Serializable
-data class LoginUserData(
+data class UserData(
     val token: String,
     val firstName: String,
     val lastName: String,

@@ -27,6 +27,7 @@ import com.phoenix.tech.foodapp.ui.theme.AppTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -53,7 +54,7 @@ class MainActivity : ComponentActivity() {
         // Asynchronous Initialization:
         lifecycleScope.launch {
             val isAuthenticated = sessionManager.isAuthenticated.first()
-            delay(200) // Tiny delay to ensure Splash is seen
+            delay(200.milliseconds) // Tiny delay to ensure Splash is seen
             startDest = if (isAuthenticated) MainAppGraphRoute else AuthGraphRoute
         }
 

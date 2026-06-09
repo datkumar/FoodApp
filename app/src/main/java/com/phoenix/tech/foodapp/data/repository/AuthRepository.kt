@@ -3,7 +3,7 @@ package com.phoenix.tech.foodapp.data.repository
 import android.util.Base64.NO_WRAP
 import android.util.Base64.encodeToString
 import com.phoenix.tech.foodapp.data.model.LoginRequest
-import com.phoenix.tech.foodapp.data.model.LoginUserData
+import com.phoenix.tech.foodapp.data.model.UserData
 import com.phoenix.tech.foodapp.data.network.AuthApi
 import com.phoenix.tech.foodapp.data.network.HttpClient
 import java.net.SocketTimeoutException
@@ -18,7 +18,7 @@ class AuthRepository(
 ) {
     suspend fun login(
         email: String, pswd: String
-    ): Result<LoginUserData> {
+    ): Result<UserData> {
         try {
             val encodedPswd = encodeToString(pswd.toByteArray(), NO_WRAP)
             // Build and fire Login request
@@ -29,7 +29,7 @@ class AuthRepository(
                 val body = response.body()
                 // Status 200 AND Data exists
                 if (body?.statusCode == 200 && body.data != null) {
-                    val userData: LoginUserData = body.data
+                    val userData: UserData = body.data
                     sessionManager.saveUserInfo(userData)
                     return Result.success(userData)
                 }

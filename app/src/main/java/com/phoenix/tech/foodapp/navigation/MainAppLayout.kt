@@ -75,6 +75,8 @@ import com.phoenix.tech.foodapp.ui.state.HomeViewModelFactory
 import com.phoenix.tech.foodapp.ui.state.LocationResult
 import com.phoenix.tech.foodapp.ui.state.LocationViewModel
 import com.phoenix.tech.foodapp.ui.state.LocationViewModelFactory
+import com.phoenix.tech.foodapp.ui.state.ProfileViewModel
+import com.phoenix.tech.foodapp.ui.state.ProfileViewModelFactory
 import kotlinx.coroutines.launch
 
 
@@ -395,7 +397,7 @@ fun MainAppLayout(
         }
     }
 
-    Box() {
+    Box {
         // ENTIRE PAGE'S LAYOUT
         SharedTransitionLayout { // For hosting shared-element transition animations
             Scaffold(
@@ -496,7 +498,11 @@ fun MainAppLayout(
                     // PROFILE-TAB branch
                     navigation<ProfileTabRoute>(startDestination = ProfileRoute) {
                         composable<ProfileRoute> {
+                            val profileViewModel: ProfileViewModel = viewModel(
+                                factory = ProfileViewModelFactory(sessionManager)
+                            )
                             ProfileScreen(
+                                viewModel = profileViewModel,
                                 onRequestCameraPermission = { requestCameraPermission() },
                             )
                         }
@@ -569,15 +575,10 @@ fun MainAppLayout(
                         onClick = {
                             showAppPermissionSettings = false
                             // Open System Settings for this specific app
-                            val intent = Intent(
-                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                            ).apply {
-                                data = Uri.fromParts(
-                                    "package",
-                                    context.packageName,
-                                    null
-                                )
-                            }
+                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                                .apply {
+                                    data = Uri.fromParts("package", context.packageName, null)
+                                }
                             context.startActivity(intent)
                         }
                     ) {

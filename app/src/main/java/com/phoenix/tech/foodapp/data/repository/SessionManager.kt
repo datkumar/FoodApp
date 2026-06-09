@@ -6,7 +6,7 @@ import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.phoenix.tech.foodapp.data.model.LoginUserData
+import com.phoenix.tech.foodapp.data.model.UserData
 import com.phoenix.tech.foodapp.data.model.UserLocation
 import com.phoenix.tech.foodapp.utils.AppKeys
 import kotlinx.coroutines.flow.Flow
@@ -46,10 +46,10 @@ class SessionManager(context: Context) {
     // Expose token as a Flow (could be used in OkHttp headers)
     val authToken: Flow<String?> = _dataStore.data.map { prefs -> prefs[_keys.userToken] }
 
-    val userData: Flow<LoginUserData?> = _dataStore.data.map { prefs ->
+    val userData: Flow<UserData?> = _dataStore.data.map { prefs ->
         // If token is null, return whole user object as null
         val token = prefs[_keys.userToken] ?: return@map null
-        LoginUserData(
+        UserData(
             token = token,
             email = prefs[_keys.userEmail] ?: "",
             mobileNumber = prefs[_keys.userPhone] ?: "",
@@ -77,7 +77,7 @@ class SessionManager(context: Context) {
     // Prevents identical emissions from triggering downstream logic (effects)
 
 
-    suspend fun saveUserInfo(userData: LoginUserData) {
+    suspend fun saveUserInfo(userData: UserData) {
         _dataStore.edit { prefs ->
             prefs[_keys.userToken] = userData.token
             prefs[_keys.userEmail] = userData.email

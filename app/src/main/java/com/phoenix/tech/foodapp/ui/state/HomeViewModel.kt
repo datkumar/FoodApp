@@ -6,6 +6,7 @@ import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.phoenix.tech.foodapp.data.model.RestoListingItem
 import com.phoenix.tech.foodapp.data.model.UserLocation
 import com.phoenix.tech.foodapp.data.repository.RestoListRepository
 import com.phoenix.tech.foodapp.data.repository.SessionManager
@@ -22,6 +23,19 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+const val HomeVMTag = "HOME_VM"
+
+sealed class HomeUiState {
+    data class Success(
+        val restoListingItems: List<RestoListingItem>,
+        val isLoadingMore: Boolean = false,  // spinner at bottom of list
+        val hasMore: Boolean = true
+    ) : HomeUiState()
+
+    object Loading : HomeUiState()
+    data class Error(val message: String) : HomeUiState()
+}
+
 class HomeViewModelFactory(
     private val sessionManager: SessionManager,
     private val locationViewModel: LocationViewModel   // injected so HomeVM can patch the name
@@ -35,7 +49,6 @@ class HomeViewModelFactory(
     }
 }
 
-const val HomeVMTag = "HOME_VM"
 
 class HomeViewModel(
     sessionManager: SessionManager,
@@ -58,6 +71,9 @@ class HomeViewModel(
     // null means "no override — use whatever the base flow produces".
     private val _uiStateOverride = MutableStateFlow<HomeUiState?>(null)
 
+    // Track the last successfully fetched base page data
+    private var lastBaseSuccessState: HomeUiState.Success? = null
+
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @OptIn(ExperimentalCoroutinesApi::class, ExperimentalStdlibApi::class)
@@ -65,7 +81,7 @@ class HomeViewModel(
         // Only re-emit when lat/lng actually changes, not on every DataStore write
         // (e.g. when we patch the name via updateLocationNameFromSwiggy)
         sessionManager.userLocation.distinctUntilChanged { old, new ->
-            old?.latitude == new?.latitude && old?.longitude == new?.longitude
+            (old?.latitude == new?.latitude) && (old?.longitude == new?.longitude)
         },
         refreshTrigger,
         locationViewModel.isResolvingLocation
@@ -107,12 +123,19 @@ class HomeViewModel(
                     )
                     fetchRestaurantsFlow(location)
                 } else {
-                    Log.d(
-                        HomeVMTag,
-                        "uiState: skipping fetch — location and trigger unchanged"
-                    )
-//                    flowOf(uiState.value)
-                    flowOf(HomeUiState.Loading) // will be immediately overridden by _uiStateOverride
+
+                    Log.d(HomeVMTag, "uiState: skipping fetch — returning cached state")
+
+                    // If we have a cached base success state, use it!
+                    // Fall back to Loading only if it's the absolute first cold startup.
+                    flowOf(lastBaseSuccessState ?: HomeUiState.Loading)
+
+//                    Log.d(
+//                        HomeVMTag,
+//                        "uiState: skipping fetch — location and trigger unchanged"
+//                    )
+////                    flowOf(uiState.value)
+//                    flowOf(HomeUiState.Loading) // will be immediately overridden by _uiStateOverride
                 }
             }
         }
@@ -133,8 +156,11 @@ class HomeViewModel(
     )
 
 
-    fun refreshRestaurants() {
-        _uiStateOverride.value = null  // wipe any leftover pagination state
+    fun hardRefreshRestaurants() {
+        // Wipe any leftover pagination state
+        _uiStateOverride.value = null
+        // Clear the cache so a fresh loading lifecycle triggers properly
+        lastBaseSuccessState = null
         refreshTrigger.value = System.currentTimeMillis()
     }
 
@@ -187,13 +213,15 @@ class HomeViewModel(
                     "fetchRestaurantsFlow: manual location — keeping name '${location.name}'"
                 )
             }
-            emit(
-                HomeUiState.Success(
-                    restoListingItems = data,
-                    isLoadingMore = false,
-                    hasMore = repository.hasMore
-                )
+
+            // Cache this state locally in the ViewModel memory space
+            val successState = HomeUiState.Success(
+                restoListingItems = data,
+                isLoadingMore = false,
+                hasMore = repository.hasMore
             )
+            lastBaseSuccessState = successState
+            emit(successState)
 
         } catch (e: Exception) {
             Log.e(HomeVMTag, "fetchRestaurantsFlow: network error", e)

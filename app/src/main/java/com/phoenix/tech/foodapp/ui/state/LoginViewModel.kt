@@ -10,6 +10,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 
+sealed class LoginUiState {
+    object Idle : LoginUiState()
+    object Loading : LoginUiState()
+    data class Success(val token: String) : LoginUiState()
+    data class Error(val message: String) : LoginUiState()
+}
+
+
 class LoginViewModelFactory(
     private val authRepository: AuthRepository
 ) : ViewModelProvider.Factory {

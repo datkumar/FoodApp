@@ -36,9 +36,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 private const val LocationVMTag = "LOCATION_VM"
-
 
 class LocationViewModelFactory(
     private val sessionManager: SessionManager,
@@ -54,6 +56,7 @@ class LocationViewModelFactory(
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
+
 
 sealed class LocationResult {
     object Success : LocationResult()
@@ -110,8 +113,7 @@ sealed class LocationResult {
             isResolvingLocation.first { !it }
 
             while (true) {
-                delay(5 * 60 * 1000L) // 5 mins
-
+                delay(5.minutes)
                 // Only auto-refresh if the current location is auto-detected.
                 // If the user manually searched for a location, respect that choice
                 // and don't silently overwrite it with GPS coords.
@@ -132,7 +134,7 @@ sealed class LocationResult {
     // Location search results state
     @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class, ExperimentalCoroutinesApi::class)
     val searchResults: StateFlow<List<GeocodingEntry>> = _query
-        .debounce(400)
+        .debounce(400.milliseconds)
         .distinctUntilChanged()
         .flatMapLatest { searchTerm -> // Use flatMapLatest for cleaner flow handling
             flow {
@@ -233,7 +235,7 @@ sealed class LocationResult {
         return try {
             val cts = CancellationTokenSource()
             // Fresh location — can be null if the device hasn't got a satellite lock yet
-            val freshLoc = withTimeoutOrNull(5_000) {
+            val freshLoc = withTimeoutOrNull(5.seconds) {
                 fusedLocationClient
                     .getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cts.token)
                     .await()
