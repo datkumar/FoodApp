@@ -139,7 +139,7 @@ private fun LoginContent(
                     onReset()
                 }
             },
-            error = emailValidationError,
+            error = emailValidationError?.message,
         )
 
         Spacer(modifier = Modifier.height(15.dp))
@@ -157,7 +157,7 @@ private fun LoginContent(
             },
             isPswdVisible = isPswdVisible,
             onVisibilityChanged = { isPswdVisible = it },
-            error = pswdValidationError,
+            error = pswdValidationError?.message,
             imeAction = ImeAction.Done
         )
 

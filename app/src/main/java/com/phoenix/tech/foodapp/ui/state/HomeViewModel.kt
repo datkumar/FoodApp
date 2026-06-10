@@ -123,19 +123,11 @@ class HomeViewModel(
                     )
                     fetchRestaurantsFlow(location)
                 } else {
-
                     Log.d(HomeVMTag, "uiState: skipping fetch — returning cached state")
 
                     // If we have a cached base success state, use it!
                     // Fall back to Loading only if it's the absolute first cold startup.
                     flowOf(lastBaseSuccessState ?: HomeUiState.Loading)
-
-//                    Log.d(
-//                        HomeVMTag,
-//                        "uiState: skipping fetch — location and trigger unchanged"
-//                    )
-////                    flowOf(uiState.value)
-//                    flowOf(HomeUiState.Loading) // will be immediately overridden by _uiStateOverride
                 }
             }
         }
