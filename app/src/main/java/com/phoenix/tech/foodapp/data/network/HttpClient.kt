@@ -2,7 +2,6 @@ package com.phoenix.tech.foodapp.data.network
 
 import android.content.Context
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
-import com.phoenix.tech.foodapp.BuildConfig
 import com.phoenix.tech.foodapp.utils.GEOCODE_BASE_URL
 import com.phoenix.tech.foodapp.utils.POKE_BASE_URL
 import com.phoenix.tech.foodapp.utils.SWIGGY_BASE_URL
@@ -38,10 +37,11 @@ object HttpClient {
     }
 
     private val contentType = "application/json".toMediaType()
-    private val json = Json {
+    val json = Json {
         ignoreUnknownKeys = true // Don't process keys we haven't defined in schema
         coerceInputValues = true
         isLenient = true
+        encodeDefaults = true
     }
 
     // Common logging for both APIs
@@ -49,7 +49,6 @@ object HttpClient {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
-    private const val AUTH_BASE_URL = BuildConfig.AUTH_BASE_URL
 
     private fun createCommonClientBuilder(timeoutSec: Long): OkHttpClient.Builder {
         return OkHttpClient.Builder()
@@ -58,6 +57,30 @@ object HttpClient {
             .cache(cache) // Enable disk caching
             .connectTimeout(timeoutSec, TimeUnit.SECONDS)
     }
+
+    // --- AUTH SETUP ---
+    val authApi: AuthApi by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://mock.auth.local/") // Fake URL (interceptor handles the call locally)
+            .client(
+                createCommonClientBuilder(15)
+                    .addInterceptor(MockAuthInterceptor()) // Intercepts before network request goes out
+                    .build()
+            )
+            .addConverterFactory(json.asConverterFactory(contentType))
+            .build()
+            .create(AuthApi::class.java)
+    }
+
+//    private const val AUTH_BASE_URL = BuildConfig.AUTH_BASE_URL
+//    val authApi: AuthApi by lazy {
+//        Retrofit.Builder()
+//            .baseUrl(AUTH_BASE_URL)
+//            .client(createCommonClientBuilder(15).build())
+//            .addConverterFactory(json.asConverterFactory(contentType))
+//            .build()
+//            .create(AuthApi::class.java)
+//    }
 
     // --- SWIGGY SETUP ---
     val swiggyApi: SwiggyApi by lazy {
@@ -71,16 +94,6 @@ object HttpClient {
             .addConverterFactory(json.asConverterFactory(contentType))
             .build()
             .create(SwiggyApi::class.java)
-    }
-
-    // --- AUTH SETUP ---
-    val authApi: AuthApi by lazy {
-        Retrofit.Builder()
-            .baseUrl(AUTH_BASE_URL)
-            .client(createCommonClientBuilder(15).build())
-            .addConverterFactory(json.asConverterFactory(contentType))
-            .build()
-            .create(AuthApi::class.java)
     }
 
     // --- GEO-CODING SETUP ---

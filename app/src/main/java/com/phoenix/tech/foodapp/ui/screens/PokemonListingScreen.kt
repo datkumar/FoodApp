@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -40,7 +39,6 @@ import com.phoenix.tech.foodapp.ui.state.PokemonListViewModel
 import com.phoenix.tech.foodapp.ui.state.PokemonListViewModelFactory
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PokemonListingScreen(
     viewModel: PokemonListViewModel = viewModel(

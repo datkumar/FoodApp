@@ -29,6 +29,7 @@ class SessionManager(context: Context) {
         val userFirstName = stringPreferencesKey(AppKeys.USER_FIRSTNAME)
         val userLastName = stringPreferencesKey(AppKeys.USER_LASTNAME)
         val userRole = stringPreferencesKey(AppKeys.USER_ROLE)
+        val userOrg = stringPreferencesKey(AppKeys.USER_ORG)
         val userPfp = stringPreferencesKey(AppKeys.USER_PFP)
 
         // Location Prefs keys
@@ -43,25 +44,29 @@ class SessionManager(context: Context) {
         !prefs[_keys.userToken].isNullOrBlank()
     }.distinctUntilChanged()
 
-    // Expose token as a Flow (could be used in OkHttp headers)
-    val authToken: Flow<String?> = _dataStore.data.map { prefs -> prefs[_keys.userToken] }
+    // Expose auth token for OkHttp/Retrofit Auth Interceptors
+    val authToken: Flow<String?> = _dataStore.data.map { prefs ->
+        prefs[_keys.userToken]
+    }
 
+
+    // Expose current UserData profile
     val userData: Flow<UserData?> = _dataStore.data.map { prefs ->
-        // If token is null, return whole user object as null
         val token = prefs[_keys.userToken] ?: return@map null
         UserData(
             token = token,
-            email = prefs[_keys.userEmail] ?: "",
-            mobileNumber = prefs[_keys.userPhone] ?: "",
-            userName = prefs[_keys.userUsername] ?: "",
-            profilePicture = prefs[_keys.userPfp] ?: "",
             firstName = prefs[_keys.userFirstName] ?: "",
             lastName = prefs[_keys.userLastName] ?: "",
+            userName = prefs[_keys.userUsername] ?: "",
+            email = prefs[_keys.userEmail] ?: "",
+            mobileNumber = prefs[_keys.userPhone] ?: "",
+            orgName = prefs[_keys.userOrg] ?: "",
             roleName = prefs[_keys.userRole] ?: "",
-            orgName = prefs[_keys.userFirstName] ?: ""
+            profilePicture = prefs[_keys.userPfp] ?: ""
         )
     }.distinctUntilChanged()
 
+    // Expose Location prefs
     val userLocation: Flow<UserLocation?> = _dataStore.data.map { prefs ->
         val locName = prefs[_keys.locName]
         if (locName.isNullOrEmpty()) null
@@ -91,6 +96,7 @@ class SessionManager(context: Context) {
     }
 
     suspend fun clearUserInfo() {
+
         _dataStore.edit { prefs ->
             prefs.remove(_keys.userToken)
             prefs.remove(_keys.userEmail)
@@ -99,6 +105,7 @@ class SessionManager(context: Context) {
             prefs.remove(_keys.userFirstName)
             prefs.remove(_keys.userLastName)
             prefs.remove(_keys.userRole)
+            prefs.remove(_keys.userOrg)
             prefs.remove(_keys.userPfp)
             // Note: Don't clear location data so we won't have to re-detect
         }

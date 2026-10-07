@@ -19,6 +19,7 @@ object AppKeys {
     const val USER_PFP = "USER_PFP" // Profile Picture
     const val USER_FIRSTNAME = "USER_FIRSTNAME"
     const val USER_LASTNAME = "USER_LASTNAME"
+    const val USER_ORG = "USER_ORG"
 
     // Location Data key names
     const val LOC_NAME = "LOC_NAME"

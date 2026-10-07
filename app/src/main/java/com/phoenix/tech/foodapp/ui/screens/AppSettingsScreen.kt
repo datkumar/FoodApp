@@ -57,6 +57,7 @@ fun AppSettingsScreen(
                 confirmButton = {
                     TextButton(
                         onClick = {
+                            showLogoutConfirmDialog = false // Dismiss dialog first
                             // Perform Logout via ViewModel
                             viewModel.performLogout(onLogoutSuccess = onLogoutNav)
                         }

@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -57,7 +56,6 @@ import com.phoenix.tech.foodapp.ui.state.RestoDetailsUiState
 import com.phoenix.tech.foodapp.ui.state.RestoDetailsViewModel
 import com.phoenix.tech.foodapp.ui.state.RestoDetailsViewModelFactory
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun RestaurantDetailsScreen(
     restoId: String, restoName: String, imgId: String,

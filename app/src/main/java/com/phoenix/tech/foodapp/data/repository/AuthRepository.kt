@@ -3,20 +3,23 @@ package com.phoenix.tech.foodapp.data.repository
 import android.os.Build
 import androidx.annotation.RequiresApi
 import com.phoenix.tech.foodapp.data.model.LoginRequest
+import com.phoenix.tech.foodapp.data.model.LoginResponse
 import com.phoenix.tech.foodapp.data.model.UserData
 import com.phoenix.tech.foodapp.data.network.AuthApi
 import com.phoenix.tech.foodapp.data.network.HttpClient
+import com.phoenix.tech.foodapp.data.network.HttpClient.json
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.util.Base64
 
-val AuthRepoTag = "AUTH_REPOSITORY"
+const val AuthRepoTag = "AUTH_REPOSITORY"
 
 class AuthRepository(
     private val api: AuthApi = HttpClient.authApi,
     private val sessionManager: SessionManager, // Inject Session Data
     private val cartRepository: CartRepository // Inject Cart Data
 ) {
+
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun loginUser(
         email: String, pswd: String
@@ -30,10 +33,11 @@ class AuthRepository(
             )
             val response = api.login(request)
 
-            if (response.isSuccessful) { // 2xx status codes
+            if (response.isSuccessful) { // 2xx HTTP codes
                 val body = response.body()
                 // Status 200 AND Data exists
                 if (body?.statusCode == 200 && body.data != null) {
+                    // Save session on successful authentication
                     val userData: UserData = body.data
                     sessionManager.saveUserInfo(userData)
                     return Result.success(userData)
@@ -41,10 +45,27 @@ class AuthRepository(
                 return Result.failure(
                     Exception(body?.statusMessage ?: "Data missing")
                 )
-            } else {
-                // Handle non-2xx HTTP errors
+
+            } else { // Non-2xx HTTP codes
+                // Read raw JSON string from errorBody()
+                val errorJsonString = response.errorBody()?.string()
+                // Parse the JSON into LoginResponse object
+                val parsedErrorResponse = try {
+                    errorJsonString?.let {
+                        json.decodeFromString<LoginResponse>(it)
+                    }
+                } catch (_: Exception) {
+                    null
+                }
+                // Get message from parsed response, or fallback
+                val errorMessage = parsedErrorResponse?.statusMessage ?: "Invalid Credentials"
+
+                if (response.code() == 401) { // Unauthorized
+                    return Result.failure(Exception(errorMessage))
+                }
+                // Other HTTP codes than 401
                 return Result.failure(
-                    Exception("Server Error: HTTP ${response.code()}")
+                    Exception("Server Error (${response.code()}): $errorMessage")
                 )
             }
         } catch (e: Exception) {

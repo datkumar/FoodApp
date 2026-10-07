@@ -17,7 +17,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -52,7 +51,6 @@ import com.phoenix.tech.foodapp.ui.theme.AppTextFieldColors
 import com.phoenix.tech.foodapp.ui.theme.AppTheme
 import com.phoenix.tech.foodapp.utils.InputValidators
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel,
@@ -90,7 +88,6 @@ fun LoginScreen(
 }
 
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun LoginContent(
     uiState: LoginUiState,
@@ -166,7 +163,7 @@ private fun LoginContent(
         // API Error message (Displayed only if state is Error)
         if (uiState is LoginUiState.Error) {
             Text(
-                text = uiState.message,
+                text = uiState.statusMessage,
                 color = AppTextFieldColors.Error,
                 style = MaterialTheme.typography.titleSmall,
                 textAlign = TextAlign.Center,
@@ -297,7 +294,7 @@ private fun EditTextField(
 fun LoginPreview() {
     AppTheme {
         LoginContent(
-            uiState = LoginUiState.Error("409: Invalid Credentials"),
+            uiState = LoginUiState.Error("401: Invalid Credentials"),
             onLoginClick = { _, _ -> },
             onReset = {}
         )
