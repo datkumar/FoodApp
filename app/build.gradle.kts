@@ -88,11 +88,6 @@ dependencies {
     // Testing & Debugging
     androidTestImplementation(platform(libs.androidx.compose.bom))
     debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
 
     // Networking
     implementation(libs.retrofit.core)
@@ -105,7 +100,6 @@ dependencies {
 
     // Persistent Data storage
     implementation(libs.androidx.datastore.preferences)
-    implementation(libs.androidx.datastore.preferences.rxjava3)
     // Room SQLite DB
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
@@ -124,6 +118,29 @@ dependencies {
 
     // Camera libs bundle
     implementation(libs.bundles.camerax)
+
+
+    // ========================================================================
+    // Local Unit Tests (src/test)
+    // ========================================================================
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test) // For runTest and MainDispatcherRule
+    testImplementation(libs.mockk.core)              // For mocking repositories in ViewModels
+    testImplementation(libs.cashapp.turbine)         // For testing UI state Flows easily
+    testImplementation(libs.okhttp.mockwebserver)    // For feeding your debug JSONs to Retrofit
+
+    // ========================================================================
+    // Instrumented Tests (src/androidTest)
+    // ========================================================================
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.mockk.android)           // Instrumented MockK variant
+    androidTestImplementation(libs.androidx.paging.testing) // For validating paginated list states
+    androidTestImplementation(libs.room.testing)            // Room DB testing
+    // Debug rules for layout checking
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+
 }
 
 

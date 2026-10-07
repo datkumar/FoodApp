@@ -24,7 +24,7 @@ class AppSettingsViewModel(
 
     fun performLogout(onLogoutSuccess: () -> Unit) {
         viewModelScope.launch {
-            authRepository.logout()
+            authRepository.logoutUser()
             onLogoutSuccess()
         }
     }

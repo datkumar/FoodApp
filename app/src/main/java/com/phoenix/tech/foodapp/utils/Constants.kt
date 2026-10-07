@@ -5,6 +5,11 @@ object AppKeys {
     const val PREFS_STORE = "PREFS_STORE"
     const val DB_NAME = "FOOD_APP_DB"
 
+    // Room DB Entity Table names
+    const val DB_TABLE_RESTAURANTS = "restaurants"
+    const val DB_TABLE_CART_ITEMS = "cart_items"
+    const val DB_COL_RESTO_ID = "restoId"
+
     // User Data key names
     const val USER_TOKEN = "USER_TOKEN"
     const val USER_EMAIL = "USER_EMAIL"

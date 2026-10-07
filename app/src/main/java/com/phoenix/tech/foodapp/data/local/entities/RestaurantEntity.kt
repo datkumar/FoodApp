@@ -3,9 +3,10 @@ package com.phoenix.tech.foodapp.data.local.entities
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.phoenix.tech.foodapp.data.model.RestoDetailsRestoInfo
+import com.phoenix.tech.foodapp.utils.AppKeys
 
 @Entity(
-    tableName = "restaurants"
+    tableName = AppKeys.DB_TABLE_RESTAURANTS
 )
 data class RestaurantEntity(
     @PrimaryKey val restoId: String,

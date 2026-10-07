@@ -13,8 +13,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.phoenix.tech.foodapp.R
+import com.phoenix.tech.foodapp.ui.theme.AppTheme
 
 @Composable
 fun ErrorPage(msg: String) {
@@ -34,5 +36,14 @@ fun ErrorPage(msg: String) {
             msg,
             style = MaterialTheme.typography.bodyLarge
         )
+    }
+}
+
+
+@Preview(showBackground = true)
+@Composable
+fun ErrorPagePreview() {
+    AppTheme {
+        ErrorPage("An unexpected error occurred")
     }
 }

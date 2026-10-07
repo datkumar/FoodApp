@@ -80,7 +80,7 @@ fun LoginScreen(
         LoginContent(
             uiState = uiState,
             onLoginClick = { email, pswd ->
-                viewModel.login(email, pswd)
+                viewModel.handleLogin(email, pswd)
             },
             onReset = {
                 viewModel.resetState()
@@ -206,7 +206,6 @@ private fun EditTextField(
     isPswd: Boolean = false,
     isPswdVisible: Boolean = false,
     onVisibilityChanged: (Boolean) -> Unit = {},
-//    onTogglePswd: () -> Unit = {},
     imeAction: ImeAction = ImeAction.Next
 ) {
     val focusManager = LocalFocusManager.current
@@ -291,43 +290,6 @@ private fun EditTextField(
         )
     )
 }
-
-
-//@Composable
-//private fun ShowPswdCheckbox(
-//    isPswdVisible: Boolean,
-//    onClick: () -> Unit
-//) {
-//    Row(
-//        modifier = Modifier
-//            .fillMaxWidth()
-//            .clickable(
-//                interactionSource = remember { MutableInteractionSource() },
-//                indication = ripple(),
-//                onClick = onClick
-//            )
-//            .padding(vertical = 4.dp, horizontal = 5.dp)
-//            .clip(shape = RoundedCornerShape(10.dp)),
-//        verticalAlignment = Alignment.CenterVertically,
-//        horizontalArrangement = Arrangement.Start
-//    ) {
-//        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-//            Checkbox(
-//                checked = isPswdVisible,
-//                onCheckedChange = null, // Entire Row instead handles click
-//                colors = CheckboxDefaults.colors(
-//                    checkedColor = AppTextFieldColors.Focused,
-//                    uncheckedColor = AppTextFieldColors.Default
-//                ),
-//            )
-//        }
-//        Spacer(modifier = Modifier.width(8.dp))
-//        Text(
-//            text = "Show Password",
-//            style = MaterialTheme.typography.bodyMedium
-//        )
-//    }
-//}
 
 
 @Preview(showBackground = true)

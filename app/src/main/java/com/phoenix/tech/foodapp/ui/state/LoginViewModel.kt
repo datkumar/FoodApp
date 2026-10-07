@@ -38,11 +38,11 @@ class LoginViewModel(
     private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
-    fun login(email: String, pswd: String) {
+    fun handleLogin(email: String, pswd: String) {
         viewModelScope.launch {
             _uiState.value = LoginUiState.Loading
             // Use the shared repository
-            val result = authRepository.login(email, pswd)
+            val result = authRepository.loginUser(email, pswd)
             _uiState.value = result.fold(
                 onSuccess = { userData ->
                     LoginUiState.Success(userData.token)

@@ -6,14 +6,15 @@ import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 import com.phoenix.tech.foodapp.data.model.RestoDetailsCategoryFoodItem
+import com.phoenix.tech.foodapp.utils.AppKeys
 
 @Entity(
-    tableName = "cart_items",
+    tableName = AppKeys.DB_TABLE_CART_ITEMS,
     foreignKeys = [
         ForeignKey(
             entity = RestaurantEntity::class,
-            parentColumns = ["restoId"],
-            childColumns = ["restoId"],
+            parentColumns = [AppKeys.DB_COL_RESTO_ID],
+            childColumns = [AppKeys.DB_COL_RESTO_ID],
             onDelete = ForeignKey.CASCADE
         )
     ]
@@ -31,8 +32,8 @@ data class CartItemEntity(
 data class CartItemWithRestaurant(
     @Embedded val cartItem: CartItemEntity,
     @Relation(
-        parentColumn = "restoId",
-        entityColumn = "restoId"
+        parentColumn = AppKeys.DB_COL_RESTO_ID,
+        entityColumn = AppKeys.DB_COL_RESTO_ID
     )
     val restaurant: RestaurantEntity
 )
