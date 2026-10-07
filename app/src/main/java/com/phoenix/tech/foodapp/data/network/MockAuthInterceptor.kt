@@ -34,7 +34,7 @@ class MockAuthInterceptor : Interceptor {
 
             // 1. TIMEOUT CASE: Throws exception directly so AuthRepository catches SocketTimeoutException
             if (isTimeoutCase) {
-                Thread.sleep(2000) // Simulate network delay before timing out
+                Thread.sleep(2500) // Simulate network delay before timing out
                 throw SocketTimeoutException("Server timed out. Please try again.")
             }
 
