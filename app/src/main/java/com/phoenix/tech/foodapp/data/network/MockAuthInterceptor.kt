@@ -29,8 +29,8 @@ class MockAuthInterceptor : Interceptor {
             // -------------------------------------------------------------
             val isTimeoutCase = requestBodyString.contains("timeout@foodapp.com", ignoreCase = true)
             val isInvalidCredsCase =
-                requestBodyString.contains("wrong@foodapp.com", ignoreCase = true) ||
-                        requestBodyString.contains("fail", ignoreCase = true)
+                requestBodyString.contains("wrong@foodapp.com", ignoreCase = true)
+                        || requestBodyString.contains("fail", ignoreCase = true)
 
             // 1. TIMEOUT CASE: Throws exception directly so AuthRepository catches SocketTimeoutException
             if (isTimeoutCase) {
@@ -66,7 +66,7 @@ class MockAuthInterceptor : Interceptor {
                     lastName = "Doe",
                     userName = "sample_user",
                     email = "test@foodapp.com",
-                    mobileNumber = "+91 9876543210",
+                    mobileNumber = "9876543210",
                     orgName = "Zwiggy Inc",
                     roleName = "Customer",
                     profilePicture = "https://picsum.photos/200"

@@ -24,8 +24,7 @@ fun RootNavigation(
     sessionManager: SessionManager
 ) {
     val rootNavCtl = rememberNavController()
-    val resolvedStartDest =
-        if (startDestination is MainAppGraphRoute) MainAppGraphRoute else AuthGraphRoute
+    val resolvedStartDest = if (startDestination is MainAppGraphRoute) MainAppGraphRoute else AuthGraphRoute
 
     NavHost(
         navController = rootNavCtl,

@@ -44,7 +44,7 @@ object HttpClient {
         encodeDefaults = true
     }
 
-    // Common logging for both APIs
+    // Common logging for all APIs
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
@@ -72,23 +72,13 @@ object HttpClient {
             .create(AuthApi::class.java)
     }
 
-//    private const val AUTH_BASE_URL = BuildConfig.AUTH_BASE_URL
-//    val authApi: AuthApi by lazy {
-//        Retrofit.Builder()
-//            .baseUrl(AUTH_BASE_URL)
-//            .client(createCommonClientBuilder(15).build())
-//            .addConverterFactory(json.asConverterFactory(contentType))
-//            .build()
-//            .create(AuthApi::class.java)
-//    }
-
     // --- SWIGGY SETUP ---
     val swiggyApi: SwiggyApi by lazy {
         Retrofit.Builder()
             .baseUrl(SWIGGY_BASE_URL)
             .client(
                 createCommonClientBuilder(30).addInterceptor(
-                    SwiggyHeaderInterceptor()
+                    SwiggyInterceptor()
                 ).build()
             )
             .addConverterFactory(json.asConverterFactory(contentType))

@@ -1,13 +1,19 @@
 package com.phoenix.tech.foodapp.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,14 +28,15 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -56,112 +63,183 @@ fun ProfileScreen(
     val userData by viewModel.userData.collectAsState()
     val scrollState = rememberScrollState()
 
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        uri?.let { viewModel.stageNewImage(it) }
+    }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-//            .padding(innerPadding)
-            .verticalScroll(scrollState)
-            .padding(horizontal = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 20.dp)
+                .padding(top = 25.dp, bottom = 100.dp), // Consistent padding prevents layout shift
+        ) {
+            // PROFILE PIC (editable)
+            ProfileImageHeader(
+                pfpUrl = if (viewModel.isEditMode) viewModel.editedProfilePic else userData?.profilePicture,
+                isEditMode = viewModel.isEditMode,
+                onEditClick = onRequestCameraPermission
+            )
+            Spacer(modifier = Modifier.height(28.dp))
 
-        // Edit/Cancel Toggle Button
-        TextButton(onClick = {
-            if (viewModel.isEditMode) viewModel.cancelEditing()
-            else userData?.let { viewModel.startEditing(it) }
-        }) {
-            Text(if (viewModel.isEditMode) "Cancel" else "Edit")
+            // USERNAME (editable)
+            ProfileTextField(
+                label = "Username",
+                isEditable = viewModel.isEditMode,
+                value = if (viewModel.isEditMode) viewModel.editedUsername else (userData?.userName ?: ""),
+                onValueChange = { viewModel.editedUsername = it },
+                isError = viewModel.isEditMode && !viewModel.isUsernameValid,
+                supportingText = if (viewModel.isEditMode && !viewModel.isUsernameValid) "Minimum 6 characters and no symbols" else null,
+                leadingIcon = painterResource(R.drawable.ic_user)
+            )
+
+            // PHONE NO. (editable)
+            ProfileTextField(
+                label = "Phone Number",
+                isEditable = viewModel.isEditMode,
+                value = if (viewModel.isEditMode) viewModel.editedPhone else (userData?.mobileNumber ?: ""),
+                onValueChange = { viewModel.editedPhone = it },
+                isError = viewModel.isEditMode && !viewModel.isPhoneValid,
+                supportingText = if (viewModel.isEditMode && !viewModel.isPhoneValid)
+                    "Enter 10-digit number starting with 6 or above" else null,
+                leadingIcon = painterResource(R.drawable.ic_call),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+            )
+
+            // EMAIL (read-only)
+            ProfileTextField(
+                label = "Email Address",
+                isEditable = false, // Always locked
+                value = userData?.email ?: "",
+                onValueChange = {},
+                leadingIcon = painterResource(R.drawable.ic_email_outlined)
+            )
+
+            // ROLE (read-only)
+            ProfileTextField(
+                label = "Account Role",
+                isEditable = false,
+                value = userData?.roleName ?: "User",
+                onValueChange = {},
+                leadingIcon = painterResource(R.drawable.ic_person_shield)
+            )
+
+            // Save & Cancel Buttons in Edit Mode
+            AnimatedVisibility(
+                visible = viewModel.isEditMode,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { viewModel.cancelEditing() },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp)
+                        ) {
+                            Text("Cancel")
+                        }
+                        Button(
+                            enabled = viewModel.canSubmit,
+                            onClick = { viewModel.saveChanges() },
+                            shape = RoundedCornerShape(12.dp),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp)
+                        ) {
+                            Text("Save Profile")
+                        }
+                    }
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // --- Profile Picture Section ---
-        ProfileImageHeader(
-            pfpUrl = userData?.profilePicture,
-            isEditMode = viewModel.isEditMode,
-            onEditClick = onRequestCameraPermission
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // --- Information Fields ---
-
-        // Editable: Username
-        ProfileTextField(
-            label = "Username",
-            value = if (viewModel.isEditMode) {
-                viewModel.editedUsername
-            } else {
-                userData?.userName ?: ""
-            },
-            onValueChange = { viewModel.editedUsername = it },
-            isEditable = viewModel.isEditMode,
-            isError = viewModel.isEditMode && !viewModel.isUsernameValid,
-            supportingText = if (viewModel.isEditMode && !viewModel.isUsernameValid)
-                "Minimum 6 characters required" else null,
-            leadingIcon = painterResource(R.drawable.ic_user)
-        )
-
-        // Editable: Phone
-        ProfileTextField(
-            label = "Phone Number",
-            value = if (viewModel.isEditMode) viewModel.editedPhone else (userData?.mobileNumber
-                ?: ""),
-            onValueChange = { if (it.length <= 10) viewModel.editedPhone = it },
-            isEditable = viewModel.isEditMode,
-            isError = viewModel.isEditMode && !viewModel.isPhoneValid,
-            supportingText = if (viewModel.isEditMode && !viewModel.isPhoneValid)
-                "Enter valid 10-digit number (starts with 6-9)" else null,
-            leadingIcon = painterResource(R.drawable.ic_call),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
-        )
-
-        // Read-Only: Email
-        ProfileTextField(
-            label = "Email Address",
-            value = userData?.email ?: "",
-            onValueChange = {},
-            isEditable = false, // Always locked
-            leadingIcon = painterResource(R.drawable.ic_email_outlined)
-        )
-
-        // Read-Only: Role
-        ProfileTextField(
-            label = "Account Role",
-            value = userData?.roleName ?: "User",
-            onValueChange = {},
-            isEditable = true,
-            leadingIcon = painterResource(R.drawable.ic_person_shield)
-        )
-
-        Spacer(modifier = Modifier.height(100.dp)) // Extra space for bottom bar
-
-        // Show Submit button only in Edit Mode
+        // FAB visible only when NOT in edit mode
         AnimatedVisibility(
-            visible = viewModel.isEditMode,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
+            visible = !viewModel.isEditMode,
+            enter = fadeIn() + scaleIn(),
+            exit = fadeOut() + scaleOut(),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 20.dp, bottom = 40.dp) // Sits above bottom navbar
         ) {
-            Button(
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
-                onClick = { viewModel.saveChanges() },
-                enabled = viewModel.canSubmit,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Save Profile Settings")
-            }
+            ExtendedFloatingActionButton(
+                onClick = { userData?.let { viewModel.startEditing(it) } },
+                icon = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_edit),
+                        contentDescription = "Edit Profile",
+                    )
+                },
+                text = { Text("Edit Profile") },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            )
         }
     }
 }
 
 
 @Composable
-fun ProfileImageHeader(
+private fun ProfileTextField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    isEditable: Boolean,
+    leadingIcon: Painter,
+    isError: Boolean = false,
+    supportingText: String? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(label) },
+            enabled = isEditable,
+//            readOnly = !isEditable,
+            isError = isError,
+            modifier = Modifier.fillMaxWidth(),
+            leadingIcon = {
+                Icon(
+                    painter = leadingIcon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            supportingText = supportingText?.let { { Text(it) } },
+            keyboardOptions = keyboardOptions,
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                // Dimmed states for locked/disabled fields
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                disabledTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                disabledLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+            )
+        )
+    }
+}
+
+
+@Composable
+private fun ProfileImageHeader(
     pfpUrl: String?,
     isEditMode: Boolean,
     onEditClick: () -> Unit
@@ -206,50 +284,5 @@ fun ProfileImageHeader(
                 )
             }
         }
-    }
-}
-
-@Composable
-fun ProfileTextField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    isEditable: Boolean,
-    leadingIcon: Painter,
-    isError: Boolean = false,
-    supportingText: String? = null,
-    keyboardOptions: KeyboardOptions = KeyboardOptions.Default
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-    ) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            label = { Text(label) },
-            enabled = isEditable,
-            readOnly = !isEditable,
-            isError = isError,
-            modifier = Modifier.fillMaxWidth(),
-            leadingIcon = {
-                Icon(
-                    painter = leadingIcon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            supportingText = supportingText?.let { { Text(it) } },
-            keyboardOptions = keyboardOptions,
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                disabledBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                disabledLeadingIconColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-            )
-        )
     }
 }

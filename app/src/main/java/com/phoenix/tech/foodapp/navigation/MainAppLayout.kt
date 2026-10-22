@@ -19,7 +19,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -83,7 +82,6 @@ import kotlinx.coroutines.launch
 const val MainLayoutPermsTag = "MAIN_LAYOUT_PERMS"
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainAppLayout(
     cartRepository: CartRepository,
@@ -106,7 +104,6 @@ fun MainAppLayout(
     // Observe Cart State
     val cartItems by cartRepository.allCartItems.collectAsState(initial = emptyList())
     val cartCount = cartItems.sumOf { it.quantity }  // Total items count (Derived state)
-
 
     // ViewModel state init.
     val locationViewModel: LocationViewModel = viewModel(
@@ -134,8 +131,8 @@ fun MainAppLayout(
         // ---- Location ----
         val locationWasRequested = perms.containsKey(Manifest.permission.ACCESS_COARSE_LOCATION)
         if (locationWasRequested) {
-            val locationGranted = perms[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-                    perms[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+            val locationGranted = perms[Manifest.permission.ACCESS_FINE_LOCATION] == true
+                    || perms[Manifest.permission.ACCESS_COARSE_LOCATION] == true
 
             if (locationGranted) {
                 Log.d(MainLayoutPermsTag, "Permission callback: location GRANTED")
@@ -298,12 +295,13 @@ fun MainAppLayout(
     val locationDisplayed = savedLocation?.name ?: "Detecting..."
 
     fun isTabRoot(): Boolean {
-        if (currDestination == null) return false
         // Check if the current destination is any of our "Root" tab screens
-        return currDestination.hasRoute(HomeRoute::class) ||
-                currDestination.hasRoute(ProfileRoute::class) ||
-                currDestination.hasRoute(AppSettingsRoute::class) ||
-                currDestination.hasRoute(PokeListingRoute::class)
+        return (currDestination != null)
+                && (currDestination.hasRoute(HomeRoute::class)
+                || currDestination.hasRoute(ProfileRoute::class)
+                || currDestination.hasRoute(AppSettingsRoute::class)
+                || currDestination.hasRoute(PokeListingRoute::class)
+                )
     }
 
     fun navigateToTab(route: Any) {
@@ -325,7 +323,7 @@ fun MainAppLayout(
                 args?.restoName ?: "Restaurant Info"
             }
 
-            currDestination?.hasRoute(PokeListingRoute::class) == true -> "Pokemons"
+            currDestination?.hasRoute(PokeListingRoute::class) == true -> "Pokemon"
             currDestination?.hasRoute(PokemonDetailsRoute::class) == true -> {
                 val args = currBackStackState?.toRoute<PokemonDetailsRoute>()
                 args?.name ?: "Pokemon Info"
@@ -369,7 +367,6 @@ fun MainAppLayout(
                             contentDescription = label,
                             tint = if (isSelected) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant
-
                         )
                     },
                     label = {
@@ -417,17 +414,17 @@ fun MainAppLayout(
                 },
                 bottomBar = { BottomNavBar() }
             ) { innerPadding ->
-
                 NavHost(
                     navController = mainAppNavCtl,
                     startDestination = HomeTabRoute, // Default tab
                     modifier = Modifier.padding(innerPadding),
                     // Navigation Transition Animations
                     enterTransition = {
-                        slideIntoContainer(
+                        val slideIntoContainer = slideIntoContainer(
                             towards = AnimatedContentTransitionScope.SlideDirection.Start,
                             animationSpec = tween(300)
                         )
+                        slideIntoContainer
                     },
                     exitTransition = {
                         slideOutOfContainer(
@@ -476,6 +473,7 @@ fun MainAppLayout(
                                 animatedVisibilityScope = this@composable,
                             )
                         }
+
                         // Restaurant Details screen
                         composable<RestaurantDetailsRoute> { backStackEntry ->
                             val args: RestaurantDetailsRoute = backStackEntry.toRoute()
@@ -492,14 +490,31 @@ fun MainAppLayout(
                                 sessionManager = sessionManager,
                                 sharedTransitionScope = this@SharedTransitionLayout,
                                 animatedVisibilityScope = this@composable,
+                                onNavigateBack = { mainAppNavCtl.popBackStack() } // <--- Pass the clean pop action
+                            )
+                        }
+
+                        // CART screen
+                        composable<CartRoute> {
+                            CartScreen(
+                                cartRepository = cartRepository,
+                                sessionManager = sessionManager,
+                                onNavigateBack = { mainAppNavCtl.popBackStack() },
+                                cartEmptyRedirect = {
+                                    mainAppNavCtl.navigate(HomeRoute) {
+                                        // Good practice: Clear backstack when redirecting to Home from empty cart
+                                        popUpTo(HomeRoute) { inclusive = true }
+                                    }
+                                }
                             )
                         }
                     }
+
                     // PROFILE-TAB branch
                     navigation<ProfileTabRoute>(startDestination = ProfileRoute) {
                         composable<ProfileRoute> {
                             val profileViewModel: ProfileViewModel = viewModel(
-                                factory = ProfileViewModelFactory(sessionManager)
+                                factory = ProfileViewModelFactory(sessionManager, application)
                             )
                             ProfileScreen(
                                 viewModel = profileViewModel,
@@ -507,6 +522,7 @@ fun MainAppLayout(
                             )
                         }
                     }
+
                     // SETTINGS-TAB branch
                     navigation<SettingsTabRoute>(startDestination = AppSettingsRoute) {
                         composable<AppSettingsRoute> {
@@ -536,24 +552,7 @@ fun MainAppLayout(
                             PokemonDetailsScreen(args.id, args.name)
                         }
                     }
-
-                    // CART page (Independent leaf)
-                    composable<CartRoute> {
-                        CartScreen(
-                            cartRepository = cartRepository,
-                            sessionManager = sessionManager,
-                            onNavigateBack = { mainAppNavCtl.popBackStack() },
-                            cartEmptyRedirect = {
-                                mainAppNavCtl.navigate(HomeRoute) {
-                                    // Good practice: Clear backstack when redirecting to Home from empty cart
-                                    popUpTo(HomeRoute) { inclusive = true }
-                                }
-                            }
-                        )
-                    }
                 }
-
-
             }
         }
 
@@ -599,8 +598,5 @@ fun MainAppLayout(
                 onDismiss = { showLocationSelectionSheet = false }
             )
         }
-
-
     }
-
 }

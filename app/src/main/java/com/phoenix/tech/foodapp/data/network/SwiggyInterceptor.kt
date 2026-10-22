@@ -6,7 +6,7 @@ import okhttp3.Response
 
 
 // Ensure it is only attached to the swiggyClient in RetrofitClient
-class SwiggyHeaderInterceptor : Interceptor {
+class SwiggyInterceptor : Interceptor {
 
     // A simple in-memory storage for the session cookie
     private var sessionCookie: String? = null

@@ -1,8 +1,13 @@
 package com.phoenix.tech.foodapp.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -66,7 +71,13 @@ fun RestaurantDetailsScreen(
     sessionManager: SessionManager,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
+    onNavigateBack: () -> Unit,
 ) {
+    // Intercept both the system gesture and back button, forcing a clean programmatic pop
+    BackHandler {
+        onNavigateBack()
+    }
+
     // Create the factory
     val factory = remember(cartRepository, sessionManager) {
         RestoDetailsViewModelFactory(cartRepository, sessionManager)
@@ -81,72 +92,78 @@ fun RestaurantDetailsScreen(
         viewModel.fetchRestaurantDetails(restoId)
     }
 
-    Column {
-        // Render the header IMMEDIATELY so the transition has a target
-        RestaurantInfoHeader(
-            restoId = restoId,
-            restoName = restoName,
-            imgId = imgId,
-            avgRating = avgRating,
-            totalRatingsString = totalRatingsString,
-            slaTime = slaTime,
-            slaDist = slaDist,
-            cuisines = cuisines,
-            sharedTransitionScope = sharedTransitionScope,
-            animatedVisibilityScope = animatedVisibilityScope
-        )
+    AnimatedVisibility(
+        visible = animatedVisibilityScope.transition.currentState == EnterExitState.Visible ||
+                animatedVisibilityScope.transition.targetState == EnterExitState.Visible,
+        enter = fadeIn(animationSpec = tween(300)),
+        exit = fadeOut(animationSpec = tween(200)), // Quick fade out on pop exit prevents lingering cards
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Column {
+            // Render the header IMMEDIATELY so the transition has a target
+            RestaurantInfoHeader(
+                restoId = restoId,
+                restoName = restoName,
+                imgId = imgId,
+                avgRating = avgRating,
+                totalRatingsString = totalRatingsString,
+                slaTime = slaTime,
+                slaDist = slaDist,
+                cuisines = cuisines,
+                sharedTransitionScope = sharedTransitionScope,
+                animatedVisibilityScope = animatedVisibilityScope
+            )
 
-        when (val state = uiState) {
-            is RestoDetailsUiState.Loading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularWavyProgressIndicator()
+            when (val state = uiState) {
+                is RestoDetailsUiState.Loading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularWavyProgressIndicator()
+                    }
                 }
-            }
 
-            is RestoDetailsUiState.Success -> {
-                val cartItems by viewModel.cartItems.collectAsStateWithLifecycle()
+                is RestoDetailsUiState.Success -> {
+                    val cartItems by viewModel.cartItems.collectAsStateWithLifecycle()
 
-                RestaurantDetailsSuccessResultLayout(
-                    restoDetailsResult = state.restoDetailsResult,
-                    cartItems = cartItems,
-                    onUpdateCart = { item, qty ->
-                        viewModel.updateCart(
-                            restaurant = state.restoDetailsResult.restoInfo.toEntity(),
-                            item = item,
-                            newQty = qty
+                    RestaurantDetailsSuccessResultLayout(
+                        restoDetailsResult = state.restoDetailsResult,
+                        cartItems = cartItems,
+                        onUpdateCart = { item, qty ->
+                            viewModel.updateCart(
+                                restaurant = state.restoDetailsResult.restoInfo.toEntity(),
+                                item = item,
+                                newQty = qty
+                            )
+                        }
+                    )
+                }
+
+                is RestoDetailsUiState.Error -> {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Image(
+                            painter = painterResource(R.drawable.error_msg),
+                            contentDescription = "Error illustration",
+                            modifier = Modifier.height(200.dp),
+                            contentScale = ContentScale.FillHeight,
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            "An error occurred while fetching restaurant details",
+                            style = MaterialTheme.typography.bodyLarge
                         )
                     }
-                )
-            }
-
-            is RestoDetailsUiState.Error -> {
-                // TODO: Error UI here
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Image(
-                        painter = painterResource(R.drawable.error_msg),
-                        contentDescription = "Error illustration",
-                        modifier = Modifier.height(200.dp),
-                        contentScale = ContentScale.FillHeight,
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        "An error occurred while fetching restaurant details",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
                 }
             }
         }
     }
-
-
 }
+
 
 @Composable
 fun RestaurantDetailsSuccessResultLayout(
@@ -196,8 +213,7 @@ fun RestaurantDetailsSuccessResultLayout(
                         quantity = currentQty,
                         onQuantityChange = { newQty ->
                             // 2. Convert API item to Entity and call the update lambda
-                            val entity = cartEntry
-                                ?: apiItem.toCartEntity(restoDetailsResult.restoInfo.id)
+                            val entity = cartEntry ?: apiItem.toCartEntity(restoDetailsResult.restoInfo.id)
                             onUpdateCart(entity, newQty)
                         }
                     )
@@ -221,6 +237,7 @@ fun RestaurantDetailsSuccessResultLayout(
         }
     }
 }
+
 
 @Composable
 fun SubCategoryDropdown(
@@ -272,8 +289,7 @@ fun SubCategoryDropdown(
                         item = apiItem,
                         quantity = cartEntry?.quantity ?: 0,
                         onQuantityChange = { newQty ->
-                            val entity = cartEntry
-                                ?: apiItem.toCartEntity(restoId)
+                            val entity = cartEntry ?: apiItem.toCartEntity(restoId)
                             onUpdateCart(entity, newQty)
                         }
                     )

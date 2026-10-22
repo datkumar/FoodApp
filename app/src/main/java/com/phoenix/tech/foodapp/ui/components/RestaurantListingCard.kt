@@ -1,7 +1,9 @@
 package com.phoenix.tech.foodapp.ui.components
 
 import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.animateDp
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,7 +54,7 @@ private const val cardImgHeight = 200
 private const val cardCornerRadius = 15
 
 @Composable
-fun RestaurantCard(
+fun RestaurantListingCard(
     restaurant: RestoListingItemData,
     onRestaurantClick: () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
@@ -60,8 +63,11 @@ fun RestaurantCard(
 ) {
     val screenTransitionKeys = RestoSharedElemAnimateKeys(restaurant.id)
 
-    with(sharedTransitionScope) {
+    val transition = animatedVisibilityScope.transition
+    val top by transition.animateDp(label = "imgTop") { if (it == EnterExitState.Visible) 15.dp else 12.dp }
+    val bottom by transition.animateDp(label = "imgBottom") { if (it == EnterExitState.Visible) 0.dp else 12.dp }
 
+    with(sharedTransitionScope) {
         Box(modifier) {
             Card(
                 colors = CardDefaults.cardColors(
@@ -88,11 +94,11 @@ fun RestaurantCard(
                         modifier = Modifier
                             .sharedElement(
                                 sharedContentState = rememberSharedContentState(
-                                    // Keep the key identical in next screen component where we're animating
-                                    key = screenTransitionKeys.img
+                                    key = screenTransitionKeys.img // Pass same key in next screen component (Header Card)
                                 ),
                                 animatedVisibilityScope = animatedVisibilityScope
                             )
+                            .clip(RoundedCornerShape(top, top, bottom, bottom))
                             .fillMaxWidth()
                             .height(cardImgHeight.dp)
                     )
@@ -115,26 +121,18 @@ fun RestaurantCard(
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier
                                     .sharedElement(
-                                        rememberSharedContentState(
-                                            key = "restoName-${restaurant.id}"
+                                        sharedContentState = rememberSharedContentState(
+                                            key = screenTransitionKeys.restoName
                                         ),
                                         animatedVisibilityScope = animatedVisibilityScope
                                     )
                                     .weight(1f)
-
                             )
                             // RATING
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(2.dp),
-                                modifier = Modifier
-                                    .sharedElement(
-                                        rememberSharedContentState(
-                                            key = screenTransitionKeys.rating
-                                        ),
-                                        animatedVisibilityScope = animatedVisibilityScope
-                                    )
-                                    .wrapContentWidth()
+                                modifier = Modifier.wrapContentWidth()
                             ) {
                                 Text(
                                     text = restaurant.avgRating.toString(),
@@ -163,12 +161,6 @@ fun RestaurantCard(
                                 color = MaterialTheme.colorScheme.secondary,
                                 maxLines = 1,
                                 modifier = Modifier
-                                    .sharedElement(
-                                        rememberSharedContentState(
-                                            key = screenTransitionKeys.slaDist
-                                        ),
-                                        animatedVisibilityScope = animatedVisibilityScope
-                                    )
                                     .wrapContentWidth()
                                     .padding(end = 10.dp)
                             )
@@ -182,12 +174,6 @@ fun RestaurantCard(
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.White,
                 modifier = Modifier
-                    .sharedElement(
-                        rememberSharedContentState(
-                            key = screenTransitionKeys.slaTime
-                        ),
-                        animatedVisibilityScope = animatedVisibilityScope
-                    )
                     .align(Alignment.TopEnd)
                     .padding(top = 5.dp, end = 5.dp)
                     .background(
@@ -198,9 +184,8 @@ fun RestaurantCard(
             )
         }
     }
-
-
 }
+
 
 @Composable
 fun RatingFractionalStar(

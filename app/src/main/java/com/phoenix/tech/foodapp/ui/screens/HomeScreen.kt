@@ -44,7 +44,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.phoenix.tech.foodapp.R
 import com.phoenix.tech.foodapp.ui.components.ErrorPage
 import com.phoenix.tech.foodapp.ui.components.NotFoundPage
-import com.phoenix.tech.foodapp.ui.components.RestaurantCard
+import com.phoenix.tech.foodapp.ui.components.RestaurantListingCard
 import com.phoenix.tech.foodapp.ui.state.HomeUiState
 import com.phoenix.tech.foodapp.ui.state.HomeViewModel
 
@@ -167,8 +167,11 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(gridPadding.dp)
                     ) {
-                        items(state.restoListingItems) { restaurant ->
-                            RestaurantCard(
+                        items(
+                            items = state.restoListingItems,
+                            key = { restaurant -> restaurant.info.id }
+                        ) { restaurant ->
+                            RestaurantListingCard(
                                 restaurant = restaurant.info,
                                 onRestaurantClick = {
                                     onRestaurantClick(

@@ -74,16 +74,14 @@ fun RestaurantInfoHeader(
                     contentDescription = "Restaurant Cover image",
                     contentScale = ContentScale.FillBounds,
                     modifier = Modifier
+                        .size(120.dp)
                         .sharedElement(
                             sharedContentState = rememberSharedContentState(
-                                // Match the key like we had in Restaurant Card
-                                key = screenTransitionKeys.img
+                                key = screenTransitionKeys.img // Match the key like we had in Restaurant Card
                             ),
                             animatedVisibilityScope = animatedVisibilityScope
                         )
-                        .size(120.dp)
                         .clip(RoundedCornerShape(12.dp))
-
                 )
                 Spacer(Modifier.width(12.dp))
                 // RESTO INFO
@@ -93,12 +91,11 @@ fun RestaurantInfoHeader(
                         text = restoName,
                         style = MaterialTheme.typography.headlineMedium,
                         maxLines = 2, overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.sharedElement(
-                            rememberSharedContentState(
-                                key = screenTransitionKeys.restoName
-                            ),
-                            animatedVisibilityScope = animatedVisibilityScope
-                        )
+                        modifier = Modifier
+                            .sharedElement(
+                                rememberSharedContentState(key = screenTransitionKeys.restoName),
+                                animatedVisibilityScope = animatedVisibilityScope
+                            )
                     )
                     Spacer(Modifier.height(5.dp))
                     // CUISINES
@@ -109,18 +106,16 @@ fun RestaurantInfoHeader(
                         maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
                     Spacer(Modifier.height(6.dp))
+
                     // RATINGS INFO ROW
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.skipToLookaheadSize()
+                    ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(2.dp),
                             modifier = Modifier
-                                .sharedElement(
-                                    rememberSharedContentState(
-                                        key = screenTransitionKeys.rating
-                                    ),
-                                    animatedVisibilityScope = animatedVisibilityScope
-                                )
                                 .background(
                                     color = getRatingColor(avgRating),
                                     shape = CircleShape // Makes it a pill
@@ -148,9 +143,11 @@ fun RestaurantInfoHeader(
                         )
                     }
                     Spacer(Modifier.height(10.dp))
+
                     // SLA Info
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.skipToLookaheadSize()
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.ic_timer),
@@ -162,18 +159,14 @@ fun RestaurantInfoHeader(
                         Text(
                             slaTime,
                             style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier
-                                .sharedElement(
-                                    rememberSharedContentState(
-                                        key = screenTransitionKeys.slaTime
-                                    ),
-                                    animatedVisibilityScope = animatedVisibilityScope
-                                ).padding(end = 12.dp)
+                            modifier = Modifier.padding(end = 12.dp)
                         )
                         Icon(
                             painter = painterResource(R.drawable.ic_moped),
                             contentDescription = "Moped icon",
-                            modifier = Modifier.size(18.dp).padding(end = 2.dp)
+                            modifier = Modifier
+                                .size(18.dp)
+                                .padding(end = 2.dp)
                         )
                         Text(
                             slaDist,

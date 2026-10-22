@@ -31,9 +31,6 @@ object AppKeys {
 class RestoSharedElemAnimateKeys(restoId: String) {
     val restoName = "restoName-$restoId"
     val img = "restoImg-$restoId"
-    val rating = "rating-$restoId"
-    val slaTime = "slaTime-$restoId"
-    val slaDist = "slaDist-$restoId"
 }
 
 const val GEOCODE_BASE_URL = "https://api.geoapify.com/v1/geocode/"

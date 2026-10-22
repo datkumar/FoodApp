@@ -78,8 +78,7 @@ class SessionManager(context: Context) {
                 isAutoDetected = prefs[_keys.locIsAuto] ?: false
             )
         }
-    }.distinctUntilChanged()
-    // Prevents identical emissions from triggering downstream logic (effects)
+    }.distinctUntilChanged() // Prevents identical emissions from triggering downstream logic (effects)
 
 
     suspend fun saveUserInfo(userData: UserData) {
@@ -96,7 +95,6 @@ class SessionManager(context: Context) {
     }
 
     suspend fun clearUserInfo() {
-
         _dataStore.edit { prefs ->
             prefs.remove(_keys.userToken)
             prefs.remove(_keys.userEmail)

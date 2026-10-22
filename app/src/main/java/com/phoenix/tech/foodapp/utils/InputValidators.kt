@@ -9,8 +9,8 @@ object InputValidators {
     private val hasSpecial = "[^A-Za-z0-9]".toRegex()
 
     //    private val emailRegex = "^[A-Za-z][A-Za-z0-9.]{3,}@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$".toRegex()
-    private val emailRegex =
-        "^[A-Za-z][A-Za-z0-9]*(?:\\.[A-Za-z0-9]+)*@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,}$".toRegex()
+    private val emailRegex = "^[A-Za-z][A-Za-z0-9]*(?:\\.[A-Za-z0-9]+)*@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,}$"
+        .toRegex()
 
 
     enum class EmailErrorMsg(val message: String) {
