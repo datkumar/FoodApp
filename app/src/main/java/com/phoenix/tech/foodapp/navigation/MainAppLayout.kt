@@ -61,6 +61,7 @@ import com.phoenix.tech.foodapp.ui.components.ConnectivityBanner
 import com.phoenix.tech.foodapp.ui.components.CustomTopBar
 import com.phoenix.tech.foodapp.ui.components.LocationSelectionSheet
 import com.phoenix.tech.foodapp.ui.screens.AppSettingsScreen
+import com.phoenix.tech.foodapp.ui.screens.CameraScreen
 import com.phoenix.tech.foodapp.ui.screens.CartScreen
 import com.phoenix.tech.foodapp.ui.screens.HomeScreen
 import com.phoenix.tech.foodapp.ui.screens.PokemonDetailsScreen
@@ -69,6 +70,7 @@ import com.phoenix.tech.foodapp.ui.screens.ProfileScreen
 import com.phoenix.tech.foodapp.ui.screens.RestaurantDetailsScreen
 import com.phoenix.tech.foodapp.ui.state.AppSettingsViewModel
 import com.phoenix.tech.foodapp.ui.state.AppSettingsViewModelFactory
+import com.phoenix.tech.foodapp.ui.state.CameraViewModel
 import com.phoenix.tech.foodapp.ui.state.HomeViewModel
 import com.phoenix.tech.foodapp.ui.state.HomeViewModelFactory
 import com.phoenix.tech.foodapp.ui.state.LocationResult
@@ -76,6 +78,7 @@ import com.phoenix.tech.foodapp.ui.state.LocationViewModel
 import com.phoenix.tech.foodapp.ui.state.LocationViewModelFactory
 import com.phoenix.tech.foodapp.ui.state.ProfileViewModel
 import com.phoenix.tech.foodapp.ui.state.ProfileViewModelFactory
+import com.phoenix.tech.foodapp.utils.ProfileImageUtils
 import kotlinx.coroutines.launch
 
 
@@ -277,19 +280,6 @@ fun MainAppLayout(
         }
     }
 
-    val requestCameraPermission = {
-        val hasCameraPermission = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.CAMERA
-        ) == PackageManager.PERMISSION_GRANTED
-        if (!hasCameraPermission) {
-            Log.d(MainLayoutPermsTag, "Camera: requesting permission")
-            permissionLauncher.launch(arrayOf(Manifest.permission.CAMERA))
-        } else {
-            // Already granted — open the camera directly
-            Log.d(MainLayoutPermsTag, "Camera access already granted. Open camera here...")
-        }
-    }
-
     // What to show in the TopBar location chip.
     // Falls back to "Detecting..." while savedLocation is null (initial load).
     val locationDisplayed = savedLocation?.name ?: "Detecting..."
@@ -317,6 +307,10 @@ fun MainAppLayout(
 
     fun getTopBarTitle(): String {
         return when {
+            currDestination?.hasRoute(ProfileRoute::class) == true -> "My Profile"
+            currDestination?.hasRoute(CameraScreenRoute::class) == true -> "Camera Capture"
+            currDestination?.hasRoute(AppSettingsRoute::class) == true -> "Settings"
+            currDestination?.hasRoute(CartRoute::class) == true -> "My Cart"
             currDestination?.hasRoute(RestaurantDetailsRoute::class) == true -> {
                 // Extracting args from the backstack entry
                 val args = currBackStackState?.toRoute<RestaurantDetailsRoute>()
@@ -329,9 +323,6 @@ fun MainAppLayout(
                 args?.name ?: "Pokemon Info"
             }
 
-            currDestination?.hasRoute(CartRoute::class) == true -> "My Cart"
-            currDestination?.hasRoute(ProfileRoute::class) == true -> "My Profile"
-            currDestination?.hasRoute(AppSettingsRoute::class) == true -> "Settings"
             currDestination?.hasRoute(HomeRoute::class) == true -> "Zwiggy"
             else -> "Zwiggy"
         }
@@ -512,13 +503,44 @@ fun MainAppLayout(
 
                     // PROFILE-TAB branch
                     navigation<ProfileTabRoute>(startDestination = ProfileRoute) {
-                        composable<ProfileRoute> {
+                        // Share ViewModel scope using the parent graph's backstack entry
+                        composable<ProfileRoute> { backStackEntry ->
+                            val parentEntry = remember(backStackEntry) {
+                                mainAppNavCtl.getBackStackEntry(ProfileTabRoute)
+                            }
                             val profileViewModel: ProfileViewModel = viewModel(
+                                viewModelStoreOwner = parentEntry,
                                 factory = ProfileViewModelFactory(sessionManager, application)
                             )
+
                             ProfileScreen(
                                 viewModel = profileViewModel,
-                                onRequestCameraPermission = { requestCameraPermission() },
+                                onNavigateToCamera = { mainAppNavCtl.navigate(CameraScreenRoute) }
+                            )
+                        }
+
+                        // Camera Screen route sharing the same ProfileViewModel instance
+                        composable<CameraScreenRoute> { backStackEntry ->
+                            val parentEntry = remember(backStackEntry) {
+                                mainAppNavCtl.getBackStackEntry(ProfileTabRoute)
+                            }
+                            val profileViewModel: ProfileViewModel = viewModel(
+                                viewModelStoreOwner = parentEntry,
+                                factory = ProfileViewModelFactory(sessionManager, application)
+                            )
+                            val cameraViewModel = remember { CameraViewModel() }
+
+                            CameraScreen(
+                                viewModel = cameraViewModel,
+                                onPhotoConfirmed = { capturedFile ->
+                                    val stagedFile = ProfileImageUtils.getStagedFile(context)
+                                    capturedFile.copyTo(stagedFile, overwrite = true)
+                                    capturedFile.delete() // Clean up camera's internal cache file
+
+                                    profileViewModel.stageNewImage(stagedFile.absolutePath)
+                                    mainAppNavCtl.popBackStack() // Return to ProfileScreen in edit mode
+                                },
+                                onDone = { mainAppNavCtl.popBackStack() }
                             )
                         }
                     }
@@ -567,7 +589,7 @@ fun MainAppLayout(
                     Text("Location Permission Required")
                 },
                 text = {
-                    Text("You have permanently denied location access. To detect nearby restaurants, please enable it in the App Settings.")
+                    Text("You have permanently denied location access. Please enable it to access nearby restaurants")
                 },
                 confirmButton = {
                     TextButton(

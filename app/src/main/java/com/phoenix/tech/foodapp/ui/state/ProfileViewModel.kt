@@ -1,7 +1,6 @@
 package com.phoenix.tech.foodapp.ui.state
 
 import android.content.Context
-import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -45,29 +44,41 @@ class ProfileViewModel(
     var isEditMode by mutableStateOf(false)
     var editedUsername by mutableStateOf("")
     var editedPhone by mutableStateOf("")
-    var editedProfilePic by mutableStateOf("") // Holds staged path temporarily
+    var editedProfilePic by mutableStateOf<String?>(null)
+        private set
+//    var stagedImageFile by mutableStateOf<File?>(null)
+//        private set
 
     fun startEditing(currentUser: UserData) {
         editedUsername = currentUser.userName
         editedPhone = currentUser.mobileNumber
-        editedProfilePic = currentUser.profilePicture // Start with current pic
+        editedProfilePic = currentUser.profilePicture
+        ProfileImageUtils.getStagedFile(applicationContext).delete() // Clear old cache if any
         isEditMode = true
     }
 
     fun cancelEditing() {
-        // Discard staged file if it exists
-        val stagedFile = ProfileImageUtils.getStagedFile(applicationContext)
-        if (stagedFile.exists()) stagedFile.delete()
+        // Delete temporary staged image if any
+        ProfileImageUtils.getStagedFile(applicationContext).delete()
+
+        // Reset fields back to current user data defaults
+        userData.value?.let { current ->
+            editedUsername = current.userName
+            editedPhone = current.mobileNumber
+            editedProfilePic = current.profilePicture
+        }
 
         isEditMode = false
+
+//        ProfileImageUtils.getStagedFile(applicationContext).delete() // Cleanup temp file
+//        editedProfilePic = null
+//        isEditMode = false
     }
 
-    fun stageNewImage(uri: Uri) {
-        val stagedFile = ProfileImageUtils.getStagedFile(applicationContext)
-        ProfileImageUtils.copyUriToFile(applicationContext, uri, stagedFile)
-        editedProfilePic = stagedFile.absolutePath
+    fun stageNewImage(imagePath: String) {
+        editedProfilePic = imagePath
     }
-    
+
     // Input Fields Validators
     val isUsernameValid get() = editedUsername.matches(Regex("^[a-zA-Z0-9_]{6,}$"))
     val isPhoneValid get() = editedPhone.matches(Regex("[6-9]\\d{9}"))
@@ -77,7 +88,8 @@ class ProfileViewModel(
         viewModelScope.launch {
             userData.value?.let { current ->
                 var finalPicPath = current.profilePicture
-                // Commit staged file to permanent storage if a new one was staged
+
+                // Use ProfileImageUtils to promote staged file to permanent storage
                 val stagedFile = ProfileImageUtils.getStagedFile(applicationContext)
                 if (stagedFile.exists()) {
                     val permanentFile = ProfileImageUtils.getPermanentFile(applicationContext)
@@ -91,6 +103,7 @@ class ProfileViewModel(
                     mobileNumber = editedPhone,
                     profilePicture = finalPicPath
                 )
+
                 sessionManager.saveUserInfo(updated)
                 isEditMode = false
             }

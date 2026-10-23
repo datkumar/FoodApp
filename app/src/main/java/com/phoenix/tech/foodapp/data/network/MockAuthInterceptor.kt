@@ -69,7 +69,7 @@ class MockAuthInterceptor : Interceptor {
                     mobileNumber = "9876543210",
                     orgName = "Zwiggy Inc",
                     roleName = "Customer",
-                    profilePicture = "https://picsum.photos/200"
+                    profilePicture = "https://picsum.photos/seed/picsum/300/300"
                 )
             )
 

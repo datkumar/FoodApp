@@ -19,6 +19,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -86,7 +87,7 @@ fun CustomTopBar(
                     Surface(
                         onClick = onLocationClick,
                         shape = RoundedCornerShape(40),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.25f)
+                        color = Color(0xFFC94F15)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -118,30 +119,31 @@ fun CustomTopBar(
                     onClick = onCartClick,
                     modifier = Modifier.padding(end = 10.dp)
                 ) {
-                    Box(modifier = Modifier.padding(top = 6.dp, end = 6.dp)) {
-                        BadgedBox(
-                            badge = {
-                                if (cartCount > 0) {
-                                    Badge(
-                                        containerColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                    ) {
-                                        Text(
-                                            getBadgeText(cartCount),
-                                            fontSize = 10.sp,
-                                            color = MaterialTheme.colorScheme.primaryContainer
-                                        )
-                                    }
+                    BadgedBox(
+
+                        badge = {
+                            if (cartCount > 0) {
+                                Badge(
+                                    containerColor = MaterialTheme.colorScheme.tertiary
+                                ) {
+                                    Text(
+                                        getBadgeText(cartCount),
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.primaryContainer
+                                    )
                                 }
                             }
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_cart),
-                                contentDescription = "My Cart",
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
+                        },
+                        modifier = Modifier.padding(top = 6.dp, end = 6.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_cart),
+                            contentDescription = "My Cart",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
                 }
+
             }
         }
     )
@@ -157,8 +159,9 @@ fun CustomTopBarPreview() {
             isHomeRoute = true,
             isCartRoute = false,
             showBack = false,
-            displayedLocation = "Pune, Maharashtra",
-            onBackClick = { },
+            cartCount = 5,
+            displayedLocation = "Pimpri Chinchwad",
+            onBackClick = {},
             onCartClick = {},
             onLocationClick = {},
         )

@@ -15,6 +15,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -60,14 +61,24 @@ fun AppSettingsScreen(
                             showLogoutConfirmDialog = false // Dismiss dialog first
                             // Perform Logout via ViewModel
                             viewModel.performLogout(onLogoutSuccess = onLogoutNav)
-                        }
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.textButtonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
                     ) {
                         Text("Confirm")
                     }
                 },
                 dismissButton = {
-                    TextButton(
-                        onClick = { showLogoutConfirmDialog = false }
+                    OutlinedButton(
+                        onClick = { showLogoutConfirmDialog = false },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.textButtonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
                     ) {
                         Text("Cancel")
                     }
@@ -78,12 +89,13 @@ fun AppSettingsScreen(
         Text(
             "Build Info",
             style = MaterialTheme.typography.displayMedium,
-            modifier = Modifier.padding(vertical = 15.dp)
+            modifier = Modifier.padding(vertical = 18.dp)
         )
         BuildInfoTable()
         Spacer(Modifier.height(30.dp))
         Button(
             modifier = Modifier.fillMaxWidth(0.8f),
+            shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = AppTextFieldColors.Error),
             onClick = { showLogoutConfirmDialog = true }
         ) {

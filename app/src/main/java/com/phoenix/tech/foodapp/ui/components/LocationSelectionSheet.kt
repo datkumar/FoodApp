@@ -32,9 +32,10 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -81,9 +82,15 @@ fun LocationSelectionSheet(
     ) == PackageManager.PERMISSION_GRANTED
 
 
+    // Unified BottomSheetState replacement (skips partially expanded state)
+    val sheetState = rememberBottomSheetState(
+        initialValue = SheetValue.Hidden,
+        enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
+    )
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(
@@ -219,9 +226,6 @@ fun LocationSelectionSheet(
             LazyColumn(modifier = Modifier.weight(1f)) {
                 items(results) { result ->
                     ListItem(
-                        headlineContent = {
-                            Text(result.formattedName)
-                        },
                         leadingContent = {
                             Icon(
                                 painterResource(R.drawable.ic_location_pin),
@@ -232,7 +236,9 @@ fun LocationSelectionSheet(
                             viewModel.selectLocation(result)
                             onDismiss()
                         }
-                    )
+                    ) {
+                        Text(result.formattedName)
+                    }
                     HorizontalDivider(
                         thickness = 0.5.dp,
                         color = Color.LightGray

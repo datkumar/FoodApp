@@ -24,6 +24,7 @@ import kotlinx.serialization.Serializable
 @Serializable object AppSettingsRoute
 @Serializable object CartRoute
 @Serializable object PokeListingRoute
+@Serializable object CameraScreenRoute
 
 @Serializable
 data class RestaurantDetailsRoute(

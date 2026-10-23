@@ -21,9 +21,12 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -74,7 +77,7 @@ fun HomeScreen(
         AlertDialog(
             title = {
                 Text(
-                    "Exit App",
+                    "Confirm Exit",
                     style = MaterialTheme.typography.displayMedium
                 )
             },
@@ -85,14 +88,23 @@ fun HomeScreen(
                     onClick = {
                         // This actually exits the activity
                         localActivity?.finishAndRemoveTask()
-                    }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.textButtonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
                 ) {
                     Text("Yes I'm sure")
                 }
             },
             dismissButton = {
-                TextButton(
-                    onClick = { showExitConfirmDialog = false }
+                OutlinedButton(
+                    onClick = { showExitConfirmDialog = false },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
                 ) {
                     Text("Cancel")
                 }

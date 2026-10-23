@@ -5,15 +5,17 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
 val lightScheme = lightColorScheme(
-    primary = Color(0xFFFF5200),          // Vibrant Food Orange
+    primary = Color(0xFFFC6823),          // Vibrant Food Orange
     onPrimary = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFFFFDBD1),
-    onPrimaryContainer = Color(0xFF9F2700),
+    onPrimaryContainer = Color(0xFFFF5722),
+    error = Color(0xFF9B0D0D),
+    onError = Color(0xFFFFFFFF),
     secondary = Color(0xFF646363),        // Dark Charcoal for accents
     onSecondary = Color(0xFFFFFFFF),
     secondaryContainer = Color(0xFFE7E7E7),
     onSecondaryContainer = Color(0xFF191C1C),
-    tertiary = Color(0xFF2E7D32),         // Healthy Green
+    tertiary = Color(0xFF0E8C72),         // Healthy Green
     onTertiary = Color(0xFFFFFFFF),
     background = Color(0xFFF8F8F8),       // Very light grey background
     surface = Color(0xFFEEEEEE),          // Pure white cards

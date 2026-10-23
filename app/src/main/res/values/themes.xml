@@ -2,7 +2,7 @@
 <resources>
 
     <style name="Theme.FoodApp.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">#FF7B3C</item>
+        <item name="windowSplashScreenBackground">#FC6823</item>
         <item name="postSplashScreenTheme">@style/Theme.FoodApp</item>
     </style>
 
