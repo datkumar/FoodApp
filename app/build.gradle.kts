@@ -10,11 +10,11 @@ plugins {
 }
 
 android {
-    namespace = "com.phoenix.tech.foodapp"
+    namespace = "com.example.tech.foodapp"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.phoenix.tech.foodapp"
+        applicationId = "com.example.tech.foodapp"
         minSdk = 24
         targetSdk = 37
 
@@ -25,17 +25,18 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    sourceSets {
-        getByName("debug") {
-            res.directories.add("src/debug/res")
-            assets.directories.add("src/debug/assets")
-            java.directories.add("src/debug/java")
-        }
-    }
+//    sourceSets {
+//        getByName("debug") {
+//            res.directories.add("src/debug/res")
+//            assets.directories.add("src/debug/assets")
+//            java.directories.add("src/debug/java")
+//        }
+//    }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -65,28 +66,26 @@ secrets {
 dependencies {
     // The Version Manager (Compose BOM)
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.material3)
-    implementation(libs.androidx.compose.foundation)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
 
     // Core UI and Material Design
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.animation)
 
     // Android Integration
+    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.compose.animation)
     implementation(libs.androidx.core.i18n)
 
     // Testing & Debugging
-    androidTestImplementation(platform(libs.androidx.compose.bom))
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // Networking
@@ -94,6 +93,9 @@ dependencies {
     implementation(libs.okhttp.logging)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.retrofit.converter.serialization)
+    // Pagination
+    implementation(libs.androidx.paging.runtime)
+    implementation(libs.androidx.paging.compose)
 
     // Image Loading
     implementation(libs.coil.compose)
@@ -105,33 +107,24 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
 
-    // Location value access
+    // Location access
     implementation(libs.google.play.services.location)
     implementation(libs.kotlinx.coroutines.play.services)
-
-    // Pagination
-    implementation(libs.androidx.paging.runtime)
-    implementation(libs.androidx.paging.compose)
-
-    // Splash Screen
-    implementation(libs.androidx.core.splashscreen)
 
     // Camera libs bundle
     implementation(libs.bundles.camerax)
 
+    // Splash Screen
+    implementation(libs.androidx.core.splashscreen)
 
-    // ========================================================================
     // Local Unit Tests (src/test)
-    // ========================================================================
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test) // For runTest and MainDispatcherRule
     testImplementation(libs.mockk.core)              // For mocking repositories in ViewModels
     testImplementation(libs.cashapp.turbine)         // For testing UI state Flows easily
     testImplementation(libs.okhttp.mockwebserver)    // For feeding your debug JSONs to Retrofit
 
-    // ========================================================================
     // Instrumented Tests (src/androidTest)
-    // ========================================================================
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
@@ -140,7 +133,6 @@ dependencies {
     androidTestImplementation(libs.room.testing)            // Room DB testing
     // Debug rules for layout checking
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-
 }
 
 
