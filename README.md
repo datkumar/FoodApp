@@ -40,6 +40,10 @@ https://github.com/user-attachments/assets/592ea1cc-4cbb-4cb8-a9f0-5206973ff88f
 
 https://github.com/user-attachments/assets/c99892f3-32cd-4ee5-8613-85f4d9bfd005
 
+https://github.com/user-attachments/assets/3fd09691-8f7d-41b2-b549-11c62d38c018
+
+
+
 ## 🛠️ Building APK from source
 
 If you wish to build the APK from this source code, make sure to create a `secrets.properties` file at the root of project and add
