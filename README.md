@@ -3,29 +3,6 @@
 A robust proof-of-concept for a food app built with modern Android development practices such as Jetpack Compose, Kotlin,
 Coroutines and Flows, MVVM pattern with repositories as well as local database for persistence
 
-## Demos
-
-https://github.com/user-attachments/assets/82366563-17ef-4408-bbb9-a79424cff5d4
-
-
-https://github.com/user-attachments/assets/45846660-af01-4b90-a7ea-86618e7df0db
-
-
-https://github.com/user-attachments/assets/49fcf68d-a208-43f9-bd0d-c5c853f14727
-
-
-https://github.com/user-attachments/assets/d184c503-be92-4933-a874-8ca8ba37c5db
-
-
-https://github.com/user-attachments/assets/3d1d75f9-37f0-4090-9dfb-7177b73b3bc6
-
-
-https://github.com/user-attachments/assets/592ea1cc-4cbb-4cb8-a9f0-5206973ff88f
-
-
-https://github.com/user-attachments/assets/c99892f3-32cd-4ee5-8613-85f4d9bfd005
-
-
 ## 🌟 Key Features
 
 - **Authentication Flow**: Client-side input validation on Login screen, session data stored in **SharedPreferences DataStore**
@@ -47,7 +24,24 @@ https://github.com/user-attachments/assets/c99892f3-32cd-4ee5-8613-85f4d9bfd005
   UI updates and a connectivity banner for network updates.
 - **Testing**: Unit tests and Instrumentation tests with JUnit for input validators, ViewModels, Cart-DB operations
 
+## Demos
+
+https://github.com/user-attachments/assets/82366563-17ef-4408-bbb9-a79424cff5d4
+
+https://github.com/user-attachments/assets/45846660-af01-4b90-a7ea-86618e7df0db
+
+https://github.com/user-attachments/assets/49fcf68d-a208-43f9-bd0d-c5c853f14727
+
+https://github.com/user-attachments/assets/d184c503-be92-4933-a874-8ca8ba37c5db
+
+https://github.com/user-attachments/assets/3d1d75f9-37f0-4090-9dfb-7177b73b3bc6
+
+https://github.com/user-attachments/assets/592ea1cc-4cbb-4cb8-a9f0-5206973ff88f
+
+https://github.com/user-attachments/assets/c99892f3-32cd-4ee5-8613-85f4d9bfd005
+
 ## 🛠️ Building APK from source
 
 If you wish to build the APK from this source code, make sure to create a `secrets.properties` file at the root of project and add
-your API key from [Geoapify](https://www.geoapify.com/). See [`secrets.properties.sample`](./secrets.properties.sample) for the key names
+your API key from [Geoapify](https://www.geoapify.com/). See [`secrets.properties.sample`](./secrets.properties.sample) for the
+key names

@@ -6,7 +6,6 @@ import com.example.tech.foodapp.utils.POKE_BASE_URL
 import com.example.tech.foodapp.utils.SWIGGY_BASE_URL
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
-import okhttp3.Cache
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -29,14 +28,15 @@ object HttpClient {
     }
 
     private val connectivityInterceptor by lazy { ConnectivityInterceptor(appContext) }
-    private val cache by lazy { getCache(appContext) }
+//    private val cache by lazy { getCache(appContext) }
 
-    private fun getCache(context: Context): Cache {
-        val cacheSize = (5 * 1024 * 1024).toLong() // 5 MB
-        return Cache(context.cacheDir, cacheSize)
-    }
+//    private fun getCache(context: Context): Cache {
+//        val cacheSize = (5 * 1024 * 1024).toLong() // 5 MB
+//        return Cache(context.cacheDir, cacheSize)
+//    }
 
     private val contentType = "application/json".toMediaType()
+
     val json = Json {
         ignoreUnknownKeys = true // Don't process keys we haven't defined in schema
         coerceInputValues = true
@@ -54,7 +54,7 @@ object HttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(connectivityInterceptor) // Check internet before every call
             .addInterceptor(loggingInterceptor)
-            .cache(cache) // Enable disk caching
+//            .cache(cache) // Enable disk caching
             .connectTimeout(timeoutSec, TimeUnit.SECONDS)
     }
 

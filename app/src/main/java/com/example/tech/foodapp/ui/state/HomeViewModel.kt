@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 const val HomeVMTag = "HOME_VM"
 
@@ -75,13 +76,18 @@ class HomeViewModel(
     private var lastBaseSuccessState: HomeUiState.Success? = null
 
 
+    private var fetchId = 0                 // bumps on every new fetch
+    private var lastFetchFailed = false     // remembers that the last fetch errored
+
+
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    @OptIn(ExperimentalCoroutinesApi::class, ExperimentalStdlibApi::class)
+    @OptIn(ExperimentalCoroutinesApi::class)
     val baseUiState: Flow<HomeUiState> = combine(
         // Only re-emit when lat/lng actually changes, not on every DataStore write
         // (e.g. when we patch the name via updateLocationNameFromSwiggy)
         sessionManager.userLocation.distinctUntilChanged { old, new ->
             (old?.latitude == new?.latitude) && (old?.longitude == new?.longitude)
+                    && (old?.isAutoDetected == new?.isAutoDetected) // If manual changed to detected or vice-versa
         },
         refreshTrigger,
         locationViewModel.isResolvingLocation
@@ -92,42 +98,29 @@ class HomeViewModel(
             // Still waiting for startup permission/GPS resolution to finish —
             // hold at Loading so we don't fetch with stale coords
             isResolving -> {
-                Log.d(
-                    HomeVMTag,
-                    "uiState: resolution in progress — holding at Loading"
-                )
+                Log.d(HomeVMTag, "uiState: resolution in progress — holding at Loading")
                 flowOf(HomeUiState.Loading)
             }
 
             (location == null) -> {
                 // Resolution finished but somehow no location was set (shouldn't
                 // happen since every path sets a fallback, but guard anyway)
-                Log.w(
-                    HomeVMTag,
-                    "uiState: resolved but location is null — holding at Loading"
-                )
+                Log.w(HomeVMTag, "uiState: resolved but location is null — holding at Loading")
                 flowOf(HomeUiState.Loading)
             }
 
             else -> {
+                val last = lastFetchedLocation
+                val cached = lastBaseSuccessState
                 val isManualRefresh = timestamp > lastHandledRefresh
-                // Check if we actually need a network call
-                val isNewLocation = location.latitude != lastFetchedLocation?.latitude ||
-                        location.longitude != lastFetchedLocation?.longitude
+                val isNewLocation = (last == null)
+                        || (location.latitude != last.latitude) || (location.longitude != last.longitude)
+                        || (location.isAutoDetected != last.isAutoDetected)
                 lastHandledRefresh = timestamp
-
-                if (isNewLocation || isManualRefresh) {
-                    Log.d(
-                        HomeVMTag,
-                        "uiState: fetching — newLocation=$isNewLocation, manualRefresh=$isManualRefresh"
-                    )
+                if (isNewLocation || isManualRefresh || cached == null) {
                     fetchRestaurantsFlow(location)
                 } else {
-                    Log.d(HomeVMTag, "uiState: skipping fetch — returning cached state")
-
-                    // If we have a cached base success state, use it!
-                    // Fall back to Loading only if it's the absolute first cold startup.
-                    flowOf(lastBaseSuccessState ?: HomeUiState.Loading)
+                    flowOf(cached)
                 }
             }
         }
@@ -156,6 +149,10 @@ class HomeViewModel(
         refreshTrigger.value = System.currentTimeMillis()
     }
 
+    fun onConnectivityRestored() {
+        if (lastFetchFailed) hardRefreshRestaurants()
+    }
+
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     fun loadMoreRestaurants() {
@@ -167,56 +164,56 @@ class HomeViewModel(
 
         val location = lastFetchedLocation ?: return
 
+        val myFetch = fetchId
         viewModelScope.launch {
-            // Show a spinner at the bottom of the list while fetching
             _uiStateOverride.value = currentState.copy(isLoadingMore = true)
-
-            repository.loadNextPage(location.latitude, location.longitude)
-
-            // Update the state with the full accumulated list
-            _uiStateOverride.value = HomeUiState.Success(
-                restoListingItems = repository.cachedRestaurantListing.toList(),
-                isLoadingMore = false,
-                hasMore = repository.hasMore
-            )
+            try {
+                repository.loadNextPage(location.latitude, location.longitude)
+                if (myFetch == fetchId) {
+                    _uiStateOverride.value = HomeUiState.Success(
+                        repository.cachedRestaurantListing.toList(),
+                        false,
+                        repository.hasMore
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(HomeVMTag, "loadMore failed", e)
+                if (myFetch == fetchId) {
+                    _uiStateOverride.value = currentState.copy(isLoadingMore = false)
+                }
+            }
         }
+
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private fun fetchRestaurantsFlow(location: UserLocation) = flow {
+        fetchId++
         _uiStateOverride.value = null  // fresh fetch — clear any override from previous pagination
         emit(HomeUiState.Loading)
         try {
             val data = repository.getHomeRestaurants(
-                location.latitude,
-                location.longitude,
+                lat = location.latitude, lng = location.longitude,
                 forceRefresh = true
             )
-            lastFetchedLocation = location
 
-            // If this was an auto-detected location, use swiggyApi's
-            // "locality" string as the display name rather than a reverse-geocoding call.
-            // For user-searched locations the name already came from the GeoAPI and should be preserved
+            lastFetchedLocation = location
+            lastFetchFailed = false
             if (location.isAutoDetected) {
-                locationViewModel.updateLocationNameFromSwiggy(data)
-            } else {
-                Log.d(
-                    "HOME_VM",
-                    "fetchRestaurantsFlow: manual location — keeping name '${location.name}'"
-                )
+                locationViewModel.updateLocationNameFromSwiggy(data, location)   // now takes location
             }
 
-            // Cache this state locally in the ViewModel memory space
-            val successState = HomeUiState.Success(
-                restoListingItems = data,
-                isLoadingMore = false,
-                hasMore = repository.hasMore
-            )
-            lastBaseSuccessState = successState
-            emit(successState)
+            val success = HomeUiState.Success(data, isLoadingMore = false, hasMore = repository.hasMore)
+            lastBaseSuccessState = success
+            emit(success)
 
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            Log.e(HomeVMTag, "fetchRestaurantsFlow: network error", e)
+            lastFetchFailed = true
+            Log.e(HomeVMTag, "fetch failed", e)
             emit(HomeUiState.Error(e.message ?: "Failed to load restaurants"))
         }
     }

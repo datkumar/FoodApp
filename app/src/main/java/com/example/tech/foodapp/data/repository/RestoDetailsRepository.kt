@@ -14,12 +14,10 @@ class RestoDetailsRepository(
         lng: Double
     ): RestoDetailsResult? {
         try {
-//            val response = api.fetchRestaurantDetails(restoId)
             // Pass the dynamic coordinates to the API call
             val response = api.fetchRestaurantDetails(
                 restoId = restoId,
-                lat = lat,
-                lng = lng
+                lat = lat, lng = lng
             )
             val allCards = response.data.cards
 
@@ -37,7 +35,7 @@ class RestoDetailsRepository(
             // We exclude the first few/last few cards as they are usually offers/license info
             val restoMenu = mainGroupCards
                 .map { it.card.card }
-                .filter { it.title != null && (it.itemCards != null || it.subCategories != null) }
+                .filter { (it.title != null) && (it.itemCards != null || it.subCategories != null) }
 
             return RestoDetailsResult(
                 restoInfo = restoInfo,

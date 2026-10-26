@@ -9,7 +9,8 @@ import java.io.IOException
 
 class ConnectivityInterceptor(private val context: Context) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
-        if (!isOnline(context)) {
+        val cm = context.getSystemService(ConnectivityManager::class.java)
+        if (!cm.isCurrentlyUsable()) {
             // Throw a custom exception that your Repository can catch
             throw NoConnectivityException()
         }

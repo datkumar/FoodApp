@@ -38,7 +38,6 @@ private fun getBadgeText(itemCnt: Int): String {
     return ""
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomTopBar(
     title: String,

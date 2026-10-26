@@ -117,7 +117,7 @@ fun LocationSelectionSheet(
                     onClick = {
                         scope.launch {
                             if (isPermissionGranted) {
-                                val result = viewModel.resolveAndSaveLocation()
+                                val result = viewModel.resolveAndSaveLocationAsync().await()
 
                                 when (result) {
                                     is LocationResult.Success -> {
@@ -137,7 +137,7 @@ fun LocationSelectionSheet(
                                         // General timeout or provider error
                                         Toast.makeText(
                                             context,
-                                            "Detection timed out. Using default fallback.",
+                                            "Couldn't detect location. Keeping your current one.",
                                             Toast.LENGTH_SHORT
                                         ).show()
                                     }

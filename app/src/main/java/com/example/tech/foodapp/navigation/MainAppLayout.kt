@@ -107,6 +107,7 @@ fun MainAppLayout(
     // Initialize the Network state observer
     val networkObserver = remember { NetworkObserver(context) }
     val isConnected by networkObserver.isConnected.collectAsStateWithLifecycle(initialValue = true)
+    var wasConnected by remember { mutableStateOf(isConnected) }
 
     // Observe Cart State
     val cartItems by cartRepository.allCartItems.collectAsState(initial = emptyList())
@@ -123,6 +124,13 @@ fun MainAppLayout(
     )
 
     val savedLocation by locationViewModel.savedLocation.collectAsState()
+
+
+    LaunchedEffect(isConnected) {
+        if (isConnected && !wasConnected) homeViewModel.onConnectivityRestored()
+        wasConnected = isConnected
+    }
+
 
     // Whether Permissions popup or Location Selection should be shown
     var showAppPermissionSettings by remember { mutableStateOf(false) }

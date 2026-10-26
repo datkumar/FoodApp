@@ -53,6 +53,7 @@ import com.example.tech.foodapp.ui.state.PokemonDetailsViewModel
 import com.example.tech.foodapp.ui.state.PokemonDetailsViewModelFactory
 import com.example.tech.foodapp.utils.formattedPokemonName
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun PokemonDetailsScreen(
@@ -196,7 +197,7 @@ fun PokemonSpriteCarousel(
     // Keep the auto-scroll logic inside the specific component it controls
     LaunchedEffect(Unit) {
         while (true) {
-            delay(3000)
+            delay(3000.milliseconds)
             if (urls.isNotEmpty()) {
                 pagerState.animateScrollToPage((pagerState.currentPage + 1) % urls.size)
             }

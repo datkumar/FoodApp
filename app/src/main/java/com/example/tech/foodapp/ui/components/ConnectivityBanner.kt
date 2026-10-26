@@ -51,10 +51,7 @@ fun ConnectivityBanner(isConnected: Boolean) {
         }
     }
 
-    Log.d(
-        ConnectivityBannerTag,
-        "CONNECTIVITY STATUS: isConnected=$isConnected, flash=$showBanner"
-    )
+    Log.d(ConnectivityBannerTag, "CONNECTIVITY STATUS: isConnected=$isConnected, flash=$showBanner")
 
     AnimatedVisibility(
         visible = !isConnected || showBanner,

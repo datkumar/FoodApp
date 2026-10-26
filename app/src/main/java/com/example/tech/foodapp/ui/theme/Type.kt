@@ -13,7 +13,6 @@ import com.example.tech.foodapp.R
 // Flashy Display font
 val DesignerFont = FontFamily(Font(R.font.playfair_display_bold))
 
-@OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
 val NunitoVariable = FontFamily(
     Font(
         resId = R.font.nunito_sans_variable,

@@ -7,6 +7,7 @@ import com.example.tech.foodapp.data.model.RestoListUpdateRequest
 import com.example.tech.foodapp.data.model.RestoListingItem
 import com.example.tech.foodapp.data.network.HttpClient
 import com.example.tech.foodapp.data.network.SwiggyApi
+import kotlin.coroutines.cancellation.CancellationException
 
 const val RestoRepoTag = "RESTO_LIST_REPO"
 
@@ -35,37 +36,34 @@ class RestoListRepository(
         forceRefresh: Boolean = false
     ): List<RestoListingItem> {
         // Check if coordinates changed or if force refresh was requested
-        val isNewLocation = lat != cachedLat || lng != cachedLng
-        if (forceRefresh || isNewLocation) {
-            clearCachedRestaurants() // Wipe cache when force-refresh specified
-        }
+        val isNewLocation = (lat != cachedLat) || (lng != cachedLng)
+
+        // Wipe cache when force-refresh specified
+        if (forceRefresh || isNewLocation) clearCachedRestaurants()
+
         // Return cached restaurant if non-empty valid one exists
         if (cachedRestaurantListing.isNotEmpty()) return cachedRestaurantListing
 
-        try {
-            // Pass the dynamic coordinates to the API
-            val response = api.fetchRestaurantsList(lat, lng)
 
-            // Store pagination cursors from first response
-            csrfToken = response.csrfToken
-            nextOffset = response.data.pageOffset?.nextOffset
-            widgetOffset = response.data.pageOffset?.widgetOffset
-            hasMore = nextOffset != null
+        // No try/catch: NoConnectivityException, timeouts and HTTP errors must reach HomeViewModel
+        val response = api.fetchRestaurantsList(lat, lng)
 
-            val initial = extractRestaurants(response)
-            cachedRestaurantListing.addAll(initial)
-            cachedLat = lat; cachedLng = lng
-            return cachedRestaurantListing.toList()
+        csrfToken = response.csrfToken
+        nextOffset = response.data.pageOffset?.nextOffset
+        widgetOffset = response.data.pageOffset?.widgetOffset
+        hasMore = false   // WAF blocks further pages, so don't trigger doomed loads
 
-        } catch (e: Exception) {
-            e.printStackTrace()
-            return emptyList()
-        }
+        val initial = extractRestaurants(response)
+        cachedRestaurantListing.addAll(initial)
+        cachedLat = lat; cachedLng = lng
+        return cachedRestaurantListing.toList()
     }
 
     suspend fun loadNextPage(lat: Double, lng: Double): List<RestoListingItem> {
-        if (!hasMore || isLoadingPage) return emptyList()
-        return try {
+        if (!hasMore || isLoadingPage) {
+            return emptyList()
+        }
+        try {
             val httpResponse = api.updateRestaurantsList(
                 RestoListUpdateRequest(
                     lat = lat,
@@ -90,7 +88,7 @@ class RestoListRepository(
             val newItems = extractRestaurants(response)
             hasMore = newItems.isNotEmpty()
             cachedRestaurantListing.addAll(newItems)
-            newItems
+            return newItems
 
 //            // Update cursors for the next page
 //            widgetOffset = response.data.pageOffset?.widgetOffset
@@ -101,9 +99,13 @@ class RestoListRepository(
 //            hasMore = newItems.isNotEmpty()
 //            cachedRestaurantListing.addAll(newItems)
 //            newItems
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            e.printStackTrace()
-            emptyList()
+            Log.w(RestoRepoTag, "loadNextPage failed", e)
+//            e.printStackTrace()
+            hasMore = false
+            return emptyList()
         } finally {
             isLoadingPage = false  // always reset, even on error
         }
@@ -124,5 +126,4 @@ class RestoListRepository(
         widgetOffset = null
         hasMore = true
     }
-
 }
